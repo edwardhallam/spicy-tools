@@ -9,14 +9,16 @@
  */
 
 import type { App, TFile, EventRef } from 'obsidian';
-import { parseDropdownDefinitions, parseGlobalDefinitions } from './DefinitionParser';
+import { parseDropdownDefinitions, parseGlobalDefinitions, parseTableDropdownDefinitions } from './DefinitionParser';
 import {
 	resolveDefinitionsForFile,
 	getDefinitionFilePath,
+	getFolderChain,
 	DROPDOWN_DEFINITION_FILENAME,
 	ResolvedDefinitions,
 } from '../shared/InheritanceResolver';
 import { DropdownDefinitions, DropdownManagerEvent } from './types';
+import { TableDropdownDefinitions } from '../tables/types';
 import { CachedDefinition } from '../shared/types';
 
 /**
@@ -33,6 +35,7 @@ export interface DropdownManagerConfig {
 export class DropdownManager {
 	private app: App;
 	private cache: Map<string, CachedDefinition<DropdownDefinitions>>;
+	private tableCache: Map<string, CachedDefinition<TableDropdownDefinitions>>;
 	private globalDefinitions: DropdownDefinitions | null;
 	private eventRefs: EventRef[];
 	private listeners: Set<(event: DropdownManagerEvent) => void>;
@@ -40,6 +43,7 @@ export class DropdownManager {
 	constructor(app: App) {
 		this.app = app;
 		this.cache = new Map();
+		this.tableCache = new Map();
 		this.globalDefinitions = null;
 		this.eventRefs = [];
 		this.listeners = new Set();
@@ -75,6 +79,7 @@ export class DropdownManager {
 
 		// Clear cache
 		this.cache.clear();
+		this.tableCache.clear();
 		this.listeners.clear();
 	}
 
@@ -108,27 +113,18 @@ export class DropdownManager {
 		// Check cache first
 		const cached = this.cache.get(definitionPath);
 		if (cached) {
-			// TODO: Check mtime for cache invalidation
 			return cached.data;
 		}
 
 		// Try to load the definition file
-		const file = this.app.vault.getAbstractFileByPath(definitionPath);
-
-		if (!file || !(file instanceof this.app.vault.constructor)) {
-			// Check if it's a TFile
-			const abstractFile = this.app.vault.getAbstractFileByPath(definitionPath);
-			if (!abstractFile || !('extension' in abstractFile)) {
-				return null;
-			}
+		const file = this.app.vault.getAbstractFileByPath(definitionPath) as TFile | null;
+		if (!file || !('extension' in file)) {
+			return null;
 		}
 
 		// Load and parse the file
 		try {
-			const tfile = this.app.vault.getAbstractFileByPath(definitionPath) as TFile | null;
-			if (!tfile) return null;
-
-			const content = await this.app.vault.read(tfile);
+			const content = await this.app.vault.read(file);
 			const result = parseDropdownDefinitions(content, definitionPath);
 
 			if (!result.success) {
@@ -140,7 +136,7 @@ export class DropdownManager {
 			// Cache the result
 			this.cache.set(definitionPath, {
 				data: result.data,
-				mtime: Date.now(), // TODO: Get actual mtime from file
+				mtime: Date.now(),
 				sourcePath: definitionPath,
 			});
 
@@ -156,10 +152,86 @@ export class DropdownManager {
 	}
 
 	/**
+	 * Get table dropdown definitions for a file, walking up the folder tree.
+	 * Returns definitions from the first _dropdowns.md with a tables section, or null.
+	 *
+	 * @param filePath - Path to the file
+	 * @returns Table dropdown definitions or null if none found
+	 */
+	async getTableDefinitionsForFile(filePath: string): Promise<TableDropdownDefinitions | null> {
+		// Extract folder path from file path
+		const lastSlash = filePath.lastIndexOf('/');
+		const folderPath = lastSlash > 0 ? filePath.substring(0, lastSlash) : '';
+
+		// Walk up the folder tree
+		const folders = getFolderChain(folderPath, this.app);
+
+		for (const folder of folders) {
+			const definitions = await this.getTableDefinitionsForFolder(folder);
+
+			if (definitions !== null && definitions.definitions.size > 0) {
+				return definitions;
+			}
+		}
+
+		// No table definitions found
+		return null;
+	}
+
+	/**
+	 * Get table definitions for a specific folder (checks for _dropdowns.md).
+	 *
+	 * @param folderPath - Path to the folder
+	 * @returns Table definitions or null if no definition file exists or no tables section
+	 */
+	async getTableDefinitionsForFolder(folderPath: string): Promise<TableDropdownDefinitions | null> {
+		const definitionPath = getDefinitionFilePath(folderPath);
+
+		// Check cache first
+		const cached = this.tableCache.get(definitionPath);
+		if (cached) {
+			return cached.data;
+		}
+
+		// Try to load the definition file
+		const file = this.app.vault.getAbstractFileByPath(definitionPath) as TFile | null;
+		if (!file || !('extension' in file)) {
+			return null;
+		}
+
+		// Load and parse the file
+		try {
+			const content = await this.app.vault.read(file);
+			const result = parseTableDropdownDefinitions(content, definitionPath);
+
+			if (!result.success) {
+				console.error('Spicy Tools: Error parsing table definitions:', result.error);
+				this.emit({ type: 'definitions-error', path: definitionPath, error: result.error });
+				return null;
+			}
+
+			// Cache the result
+			this.tableCache.set(definitionPath, {
+				data: result.data,
+				mtime: Date.now(),
+				sourcePath: definitionPath,
+			});
+
+			return result.data;
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			console.error('Spicy Tools: Error loading table definitions:', message);
+			this.emit({ type: 'definitions-error', path: definitionPath, error: message });
+			return null;
+		}
+	}
+
+	/**
 	 * Force reload all definitions (clears cache).
 	 */
 	async reloadAll(): Promise<void> {
 		this.cache.clear();
+		this.tableCache.clear();
 		this.emit({ type: 'definitions-cleared' });
 	}
 
@@ -245,8 +317,19 @@ export class DropdownManager {
 	 * Invalidate cached definitions for a path.
 	 */
 	private invalidateCache(path: string): void {
+		let invalidated = false;
+
 		if (this.cache.has(path)) {
 			this.cache.delete(path);
+			invalidated = true;
+		}
+
+		if (this.tableCache.has(path)) {
+			this.tableCache.delete(path);
+			invalidated = true;
+		}
+
+		if (invalidated) {
 			this.emit({ type: 'definitions-cleared' });
 		}
 	}

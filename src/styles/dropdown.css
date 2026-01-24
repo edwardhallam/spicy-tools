@@ -168,3 +168,148 @@
 .spicy-tools-notice-warning {
 	background: var(--background-modifier-error);
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Table Cell Dropdowns - Tag-styled Pills
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ───────────────────────────────────────────────────────────────────
+   Reading View Styles (.markdown-reading-view)
+   ─────────────────────────────────────────────────────────────────── */
+
+/* Cell padding to create space around pill */
+table td.spicy-dropdown-cell {
+	padding: 6px 8px;
+}
+
+/* Container fills available space */
+table td .spicy-dropdown {
+	display: block;
+	width: 100%;
+}
+
+/* Pill-shaped trigger with tag colors */
+table td .spicy-dropdown-trigger {
+	display: inline-flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	max-width: 100%;
+	padding: 4px 12px;
+	min-height: 26px;
+	border: none;
+	border-radius: var(--radius-xl);
+	background: var(--tag-background);
+	color: var(--tag-color);
+	cursor: pointer;
+	font-size: var(--font-small);
+	box-sizing: border-box;
+}
+
+table td .spicy-dropdown-trigger:hover {
+	background: var(--tag-background-hover);
+}
+
+table td .spicy-dropdown-trigger:focus {
+	background: var(--tag-background-hover);
+	box-shadow: none;
+	outline: none;
+}
+
+/* Text content should truncate if too long */
+table td .spicy-dropdown-value {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	flex: 1;
+	min-width: 0;
+}
+
+/* Dropdown arrow inherits tag color */
+table td .spicy-dropdown-arrow {
+	color: var(--tag-color);
+	opacity: 0.7;
+	flex-shrink: 0;
+}
+
+/* Menu positioning */
+table td .spicy-dropdown-menu {
+	position: fixed;
+	z-index: var(--layer-popover);
+	min-width: 140px;
+}
+
+/* Compact options */
+table td .spicy-dropdown-option {
+	padding: 4px 10px;
+	min-height: 32px;
+}
+
+/* Smaller multi-select pills */
+table td .spicy-dropdown-pill {
+	padding: 1px 6px;
+	font-size: var(--font-smallest);
+}
+
+/* ───────────────────────────────────────────────────────────────────
+   Live Preview Styles (.markdown-source-view.is-live-preview)
+
+   In Live Preview, tables render inside CodeMirror 6 (.cm-content).
+   The DOM structure is similar but may lack cell padding, and we need
+   to ensure dropdowns don't break CM6 line height calculations.
+   ─────────────────────────────────────────────────────────────────── */
+
+/* Live Preview: add margin since cells may lack padding */
+.markdown-source-view.is-live-preview table td .spicy-dropdown {
+	margin: 4px 6px;
+}
+
+/* Ensure dropdown cells don't break CM6 line height */
+.markdown-source-view.is-live-preview table td.spicy-dropdown-cell {
+	/* Reset any inherited line-height that might cause layout issues */
+	line-height: normal;
+	/* Ensure vertical alignment is consistent */
+	vertical-align: middle;
+}
+
+/* Live Preview: ensure trigger inherits proper sizing */
+.markdown-source-view.is-live-preview table td .spicy-dropdown-trigger {
+	/* Slightly smaller in Live Preview to fit better in editor context */
+	min-height: 24px;
+	padding: 3px 10px;
+}
+
+/* Prevent CM6 from intercepting clicks on dropdown */
+.markdown-source-view.is-live-preview table td.spicy-dropdown-cell {
+	/* Ensure clicks on the cell go to our dropdown, not CM6 editor */
+	cursor: default;
+}
+
+/* Live Preview: ensure pills container doesn't break flow */
+.markdown-source-view.is-live-preview table td .spicy-dropdown-pills {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 3px;
+}
+
+/* ───────────────────────────────────────────────────────────────────
+   Shared Styles (Both Views)
+   ─────────────────────────────────────────────────────────────────── */
+
+/* Ensure dropdown wrapper uses inline-block in both views for proper sizing */
+.markdown-reading-view table td .spicy-dropdown,
+.markdown-source-view.is-live-preview table td .spicy-dropdown {
+	display: inline-block;
+	width: auto;
+	max-width: 100%;
+}
+
+/* Menu z-index must be high enough to escape any CM6 layers */
+.markdown-source-view.is-live-preview .spicy-dropdown-menu {
+	z-index: 9999;
+}
+
+/* Ensure menus render above Obsidian UI in both contexts */
+.spicy-dropdown-menu {
+	z-index: var(--layer-popover, 9999);
+}

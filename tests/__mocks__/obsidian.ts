@@ -118,6 +118,20 @@ export class MarkdownView {
 	getViewType() { return 'markdown'; }
 }
 
+// MarkdownRenderChild - lifecycle management for rendered markdown elements
+export class MarkdownRenderChild {
+	containerEl: HTMLElement;
+
+	constructor(containerEl: HTMLElement) {
+		this.containerEl = containerEl;
+	}
+
+	onload() {}
+	onunload() {}
+	load() { this.onload(); }
+	unload() { this.onunload(); }
+}
+
 // Utility functions
 export function normalizePath(path: string) {
 	return path.replace(/\\/g, '/').replace(/\/+/g, '/');
@@ -146,6 +160,7 @@ export class MockVault {
 	delete = jest.fn().mockResolvedValue(undefined);
 	on = jest.fn().mockReturnValue({ unsubscribe: jest.fn() });
 	off = jest.fn();
+	offref = jest.fn();
 	process = jest.fn();
 }
 

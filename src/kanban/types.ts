@@ -6,27 +6,18 @@
  * Configuration for a Kanban board, parsed from _board.md.
  */
 export interface BoardConfig {
-	// ───────────────────────────────────────────────────────────────
-	// Required
-	// ───────────────────────────────────────────────────────────────
-
+	// Required fields
 	/** Frontmatter property that determines which column a card belongs to */
 	columnProperty: string;
 
 	/** Ordered list of column values */
 	columns: string[];
 
-	// ───────────────────────────────────────────────────────────────
-	// Board Metadata (optional)
-	// ───────────────────────────────────────────────────────────────
-
+	// Board metadata
 	/** Display title for the board */
 	title?: string;
 
-	// ───────────────────────────────────────────────────────────────
-	// Card Display (optional)
-	// ───────────────────────────────────────────────────────────────
-
+	// Card display
 	/** Property to show as card title (default: filename) */
 	cardTitle?: string;
 
@@ -36,10 +27,7 @@ export interface BoardConfig {
 	/** Max lines of preview text (default: 2) */
 	cardPreviewLines?: number;
 
-	// ───────────────────────────────────────────────────────────────
-	// Labels (optional)
-	// ───────────────────────────────────────────────────────────────
-
+	// Labels
 	/** Property containing labels (e.g., "tags") */
 	labelProperty?: string;
 
@@ -49,10 +37,7 @@ export interface BoardConfig {
 	/** Map of label values to CSS color names or hex codes */
 	labelColors?: Record<string, string>;
 
-	// ───────────────────────────────────────────────────────────────
-	// Swimlanes (optional)
-	// ───────────────────────────────────────────────────────────────
-
+	// Swimlanes
 	/** Property for horizontal grouping into swimlanes */
 	swimlaneProperty?: string;
 
@@ -62,17 +47,11 @@ export interface BoardConfig {
 	/** Swimlanes that are currently collapsed (managed by plugin) */
 	collapsedSwimlanes?: string[];
 
-	// ───────────────────────────────────────────────────────────────
-	// Templates (optional)
-	// ───────────────────────────────────────────────────────────────
-
+	// Templates
 	/** Path to template file for "Add card" button */
 	newCardTemplate?: string;
 
-	// ───────────────────────────────────────────────────────────────
-	// Card Order (managed by plugin)
-	// ───────────────────────────────────────────────────────────────
-
+	// Card order (managed by plugin)
 	/** Persisted card order per column */
 	cardOrder?: Record<string, string[]>;
 }

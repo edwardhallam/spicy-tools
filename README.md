@@ -12,6 +12,7 @@ Transform your frontmatter properties into dropdown selectors with:
 - **Single and multi-select** - Support for both single values and arrays
 - **Type preservation** - Numeric options stay numeric in frontmatter
 - **Mismatch indicators** - Visual feedback when property values don't match available options
+- **Table dropdowns** - Render markdown table columns as dropdowns in Reading View
 
 ### Kanban Boards
 

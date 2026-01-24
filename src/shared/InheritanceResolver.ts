@@ -6,7 +6,7 @@
  * (no merging of options).
  */
 
-import type { App, TFile, TFolder, TAbstractFile } from 'obsidian';
+import type { App, TFile } from 'obsidian';
 import { DropdownDefinition, DropdownDefinitions } from '../dropdowns/types';
 
 /**

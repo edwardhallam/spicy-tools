@@ -442,27 +442,16 @@ export class PropertyDropdownRegistry {
 		// The adapter cleanup will handle removing the UI
 	}
 
-	// ═══════════════════════════════════════════════════════════════════
 	// Interaction Lock
-	// ═══════════════════════════════════════════════════════════════════
 
-	/**
-	 * Acquire an interaction lock.
-	 */
 	private acquireLock(): void {
 		this.interactionLockCount++;
 	}
 
-	/**
-	 * Release an interaction lock.
-	 */
 	private releaseLock(): void {
 		this.interactionLockCount = Math.max(0, this.interactionLockCount - 1);
 	}
 
-	/**
-	 * Check if any dropdown is being interacted with.
-	 */
 	isLocked(): boolean {
 		return this.interactionLockCount > 0;
 	}

@@ -15,7 +15,8 @@
 		"paths": {
 			"@dropdowns/*": ["src/dropdowns/*"],
 			"@kanban/*": ["src/kanban/*"],
-			"@shared/*": ["src/shared/*"]
+			"@shared/*": ["src/shared/*"],
+			"@tables/*": ["src/tables/*"]
 		}
 	},
 	"include": ["src/**/*.ts"],

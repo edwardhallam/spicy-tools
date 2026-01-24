@@ -109,6 +109,71 @@ tags:
 
 ---
 
+## Table Dropdowns
+
+Render markdown table columns as dropdowns in Reading View. Useful for status trackers, task lists, or any tabular data with constrained values.
+
+### Configuration
+
+Add a `tables:` section to your `_dropdowns.md` file:
+
+```yaml
+tables:
+  Status:
+    options:
+      - Uncontrolled
+      - Controlled
+      - Slightly Controlled
+  Priority:
+    options:
+      - Low
+      - Medium
+      - High
+    multi: true
+```
+
+Each key under `tables:` matches a column header in your markdown tables.
+
+### Example
+
+**_dropdowns.md:**
+```yaml
+tables:
+  Status:
+    options:
+      - Open
+      - In Progress
+      - Closed
+  Assignee:
+    options:
+      - Alice
+      - Bob
+      - Charlie
+```
+
+**Your note:**
+```markdown
+| Task | Status | Assignee |
+|------|--------|----------|
+| Fix bug | Open | Alice |
+| Write docs | In Progress | Bob |
+```
+
+In Reading View, the Status and Assignee columns render as dropdown selectors instead of plain text.
+
+### How It Works
+
+- Column headers are matched **case-sensitively** to keys in the `tables:` section
+- Selecting a value updates the underlying markdown table
+- Inheritance works the same as frontmatter dropdowns (child folders can override parent definitions)
+
+### Limitations
+
+- **Reading View only** - Table dropdowns do not appear in Live Preview or Source mode
+- **Single-select by default** - Add `multi: true` for multi-select columns
+
+---
+
 ## Kanban Boards
 
 Create a visual board for any folder by adding `_board.md`.
