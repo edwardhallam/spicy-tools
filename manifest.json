@@ -1,0 +1,11 @@
+{
+	"id": "spicy-tools",
+	"name": "Spicy Tools",
+	"version": "0.1.0",
+	"minAppVersion": "1.0.0",
+	"description": "Frontmatter dropdowns with inheritance and folder-based Kanban boards",
+	"author": "Eddie Hallam",
+	"authorUrl": "https://github.com/edwardhallam",
+	"fundingUrl": "",
+	"isDesktopOnly": false
+}

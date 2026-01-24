@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Test artifacts
+test-results/
+coverage/
+
+# Claude Code configuration (private)
+.claude/
+CLAUDE.md
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.swp
+*.swo
+.vscode/
+
+# Local setup documentation (machine-specific)
+docs/LOCAL_SETUP.md
