@@ -27,7 +27,7 @@ __export(main_exports, {
   default: () => SpicyToolsPlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian4 = require("obsidian");
+var import_obsidian5 = require("obsidian");
 
 // src/settings.ts
 var import_obsidian = require("obsidian");
@@ -184,6 +184,8 @@ function parseYamlBlock(yamlContent, blockIndex) {
     for (const [property, value] of Object.entries(raw)) {
       if (property.startsWith("#"))
         continue;
+      if (property === "tables")
+        continue;
       if (!property.trim()) {
         console.warn(`Block ${blockIndex + 1}: Skipping property with empty name`);
         continue;
@@ -260,21 +262,16 @@ function hasUnclosedQuotes(line) {
   return inDoubleQuote || inSingleQuote;
 }
 function parseSimpleYaml(content) {
-  const result = {};
   const lines = content.split("\n");
-  let currentKey = null;
-  let currentObject = null;
-  let currentArray = null;
-  let isCollectingArray = false;
+  const parsedLines = [];
   for (let i = 0; i < lines.length; i++) {
     const lineNumber = i + 1;
     const rawLine = lines[i];
     const line = rawLine.trimEnd();
-    if (!line || line.trim().startsWith("#")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) {
       continue;
     }
-    const indent = rawLine.length - rawLine.trimStart().length;
-    const trimmed = line.trim();
     if (rawLine.includes("	")) {
       console.warn(`YAML warning at line ${lineNumber}: Tabs are not recommended in YAML, use spaces`);
     }
@@ -284,82 +281,68 @@ function parseSimpleYaml(content) {
     if (hasUnclosedQuotes(trimmed)) {
       throw new YamlSyntaxError("Unclosed quote", lineNumber);
     }
-    if (indent === 0 && trimmed.includes(":")) {
-      if (currentKey !== null) {
-        if (currentArray !== null) {
-          if (currentObject === null) {
-            result[currentKey] = currentArray;
-          } else {
-            currentObject.options = currentArray;
-            result[currentKey] = currentObject;
-          }
-        } else if (currentObject !== null) {
-          result[currentKey] = currentObject;
-        }
-      }
-      const colonIndex = trimmed.indexOf(":");
-      currentKey = trimmed.substring(0, colonIndex).trim();
-      const afterColon = trimmed.substring(colonIndex + 1).trim();
-      currentObject = null;
-      currentArray = null;
-      isCollectingArray = false;
-      if (afterColon) {
-        if (afterColon.startsWith("[") && afterColon.endsWith("]")) {
-          currentArray = parseInlineArray(afterColon);
-          currentObject = { options: currentArray };
-        } else {
-          result[currentKey] = parseScalar(afterColon);
-          currentKey = null;
-        }
-      }
+    const indent = rawLine.length - rawLine.trimStart().length;
+    parsedLines.push({ lineNumber, indent, content: trimmed });
+  }
+  return parseYamlLines(parsedLines, 0, 0, parsedLines.length).result;
+}
+function parseYamlLines(lines, baseIndent, startIdx, endIdx) {
+  const result = {};
+  let i = startIdx;
+  while (i < endIdx) {
+    const line = lines[i];
+    if (line.indent < baseIndent) {
+      break;
+    }
+    if (line.indent > baseIndent) {
+      i++;
       continue;
     }
-    if (indent > 0 && currentKey === null) {
-      throw new YamlSyntaxError("Unexpected indented content without a parent key", lineNumber);
+    const trimmed = line.content;
+    if (!trimmed.includes(":")) {
+      i++;
+      continue;
     }
-    if (currentKey !== null && indent > 0) {
-      if (trimmed.startsWith("- ")) {
-        if (currentArray === null) {
-          currentArray = [];
-          isCollectingArray = true;
-        }
-        const value = trimmed.substring(2).trim();
-        currentArray.push(parseScalar(value));
-        continue;
-      }
-      if (trimmed.includes(":")) {
-        if (currentObject === null) {
-          currentObject = {};
-        }
-        const colonIndex = trimmed.indexOf(":");
-        const nestedKey = trimmed.substring(0, colonIndex).trim();
-        const nestedValue = trimmed.substring(colonIndex + 1).trim();
-        if (nestedValue) {
-          if (nestedValue.startsWith("[") && nestedValue.endsWith("]")) {
-            currentObject[nestedKey] = parseInlineArray(nestedValue);
-          } else {
-            currentObject[nestedKey] = parseScalar(nestedValue);
-          }
-        } else {
-          if (nestedKey === "options") {
-            currentArray = [];
-            isCollectingArray = true;
-          }
-        }
-      }
+    const colonIndex = trimmed.indexOf(":");
+    const key = trimmed.substring(0, colonIndex).trim();
+    const afterColon = trimmed.substring(colonIndex + 1).trim();
+    const childStart = i + 1;
+    let childEnd = childStart;
+    while (childEnd < endIdx && lines[childEnd].indent > baseIndent) {
+      childEnd++;
     }
-  }
-  if (currentKey !== null) {
-    if (currentArray !== null) {
-      if (currentObject === null) {
-        result[currentKey] = currentArray;
+    if (afterColon) {
+      if (afterColon.startsWith("[") && afterColon.endsWith("]")) {
+        result[key] = parseInlineArray(afterColon);
       } else {
-        currentObject.options = currentArray;
-        result[currentKey] = currentObject;
+        result[key] = parseScalar(afterColon);
       }
-    } else if (currentObject !== null) {
-      result[currentKey] = currentObject;
+    } else if (childStart < childEnd) {
+      const firstChild = lines[childStart];
+      if (firstChild.content.startsWith("- ")) {
+        result[key] = parseYamlArray(lines, firstChild.indent, childStart, childEnd);
+      } else {
+        const nested = parseYamlLines(lines, firstChild.indent, childStart, childEnd);
+        result[key] = nested.result;
+      }
     }
+    i = childEnd > i ? childEnd : i + 1;
+  }
+  return { result, nextIdx: i };
+}
+function parseYamlArray(lines, baseIndent, startIdx, endIdx) {
+  const result = [];
+  let i = startIdx;
+  while (i < endIdx) {
+    const line = lines[i];
+    if (line.indent < baseIndent) {
+      break;
+    }
+    if (line.indent === baseIndent && line.content.startsWith("- ")) {
+      const value = line.content.substring(2).trim();
+      result.push(parseScalar(value));
+    }
+    i++;
   }
   return result;
 }
@@ -420,6 +403,109 @@ function parseGlobalDefinitions(yamlContent) {
   return success({
     definitions: blockResult.data,
     source: "global"
+  });
+}
+function parseTableDropdownDefinitions(content, sourcePath) {
+  const yamlBlocks = extractYamlBlocks(content);
+  if (yamlBlocks.length === 0) {
+    return success({
+      definitions: /* @__PURE__ */ new Map(),
+      source: sourcePath
+    });
+  }
+  const definitions = /* @__PURE__ */ new Map();
+  const errors = [];
+  for (let i = 0; i < yamlBlocks.length; i++) {
+    const block = yamlBlocks[i];
+    const result = parseTableYamlBlock(block, i);
+    if (!result.success) {
+      errors.push(result.error);
+      continue;
+    }
+    for (const [column, definition] of result.data) {
+      definitions.set(column, definition);
+    }
+  }
+  if (errors.length > 0) {
+    return failure(`Table YAML parsing errors in ${sourcePath}:
+${errors.join("\n")}`);
+  }
+  return success({
+    definitions,
+    source: sourcePath
+  });
+}
+function parseTableYamlBlock(yamlContent, blockIndex) {
+  try {
+    const raw = parseSimpleYaml(yamlContent);
+    if (raw === null || typeof raw !== "object") {
+      return success(/* @__PURE__ */ new Map());
+    }
+    if (!("tables" in raw)) {
+      return success(/* @__PURE__ */ new Map());
+    }
+    const tablesSection = raw.tables;
+    if (tablesSection === null || typeof tablesSection !== "object") {
+      return failure(`Block ${blockIndex + 1}: 'tables' must be an object`);
+    }
+    const definitions = /* @__PURE__ */ new Map();
+    for (const [column, value] of Object.entries(tablesSection)) {
+      if (column.startsWith("#"))
+        continue;
+      if (!column.trim()) {
+        console.warn(`Block ${blockIndex + 1}: Skipping table column with empty name`);
+        continue;
+      }
+      const definition = parseColumnDefinition(column, value);
+      if (!definition.success) {
+        return failure(`Block ${blockIndex + 1}, table column "${column}": ${definition.error}`);
+      }
+      definitions.set(column, definition.data);
+    }
+    return success(definitions);
+  } catch (error) {
+    if (error instanceof YamlSyntaxError) {
+      return failure(`Block ${blockIndex + 1}: Invalid YAML syntax at line ${error.line}: ${error.message}`);
+    }
+    const message = error instanceof Error ? error.message : String(error);
+    return failure(`Block ${blockIndex + 1}: ${message}`);
+  }
+}
+function parseColumnDefinition(column, value) {
+  if (!value || typeof value !== "object") {
+    return failure("Missing column definition object");
+  }
+  const obj = value;
+  if (!obj.options) {
+    return failure('Missing "options" array');
+  }
+  if (!Array.isArray(obj.options)) {
+    return failure('"options" must be an array');
+  }
+  if (obj.options.length === 0) {
+    return failure('"options" array must not be empty');
+  }
+  const options = [];
+  for (let i = 0; i < obj.options.length; i++) {
+    const opt = obj.options[i];
+    if (typeof opt === "string" || typeof opt === "number") {
+      options.push(opt);
+    } else {
+      return failure(`Option at index ${i} must be a string or number`);
+    }
+  }
+  let multi = false;
+  if (obj.multi !== void 0) {
+    if (typeof obj.multi === "boolean") {
+      multi = obj.multi;
+    } else {
+      console.warn(`Table column '${column}': 'multi' should be a boolean, defaulting to false`);
+    }
+  }
+  return success({
+    column,
+    options,
+    multi
   });
 }
 
@@ -498,6 +584,7 @@ var DropdownManager = class {
   constructor(app) {
     this.app = app;
     this.cache = /* @__PURE__ */ new Map();
+    this.tableCache = /* @__PURE__ */ new Map();
     this.globalDefinitions = null;
     this.eventRefs = [];
     this.listeners = /* @__PURE__ */ new Set();
@@ -524,6 +611,7 @@ var DropdownManager = class {
     }
     this.eventRefs = [];
     this.cache.clear();
+    this.tableCache.clear();
     this.listeners.clear();
   }
   /**
@@ -556,17 +644,11 @@ var DropdownManager = class {
       return cached.data;
     }
     const file = this.app.vault.getAbstractFileByPath(definitionPath);
-    if (!file || !(file instanceof this.app.vault.constructor)) {
-      const abstractFile = this.app.vault.getAbstractFileByPath(definitionPath);
-      if (!abstractFile || !("extension" in abstractFile)) {
-        return null;
-      }
+    if (!file || !("extension" in file)) {
+      return null;
     }
     try {
-      const tfile = this.app.vault.getAbstractFileByPath(definitionPath);
-      if (!tfile)
-        return null;
-      const content = await this.app.vault.read(tfile);
+      const content = await this.app.vault.read(file);
       const result = parseDropdownDefinitions(content, definitionPath);
       if (!result.success) {
         console.error("Spicy Tools: Error parsing definitions:", result.error);
@@ -576,7 +658,6 @@ var DropdownManager = class {
       this.cache.set(definitionPath, {
         data: result.data,
         mtime: Date.now(),
-        // TODO: Get actual mtime from file
         sourcePath: definitionPath
       });
       this.emit({ type: "definitions-loaded", path: definitionPath });
@@ -589,10 +670,67 @@ var DropdownManager = class {
     }
   }
   /**
+   * Get table dropdown definitions for a file, walking up the folder tree.
+   * Returns definitions from the first _dropdowns.md with a tables section, or null.
+   *
+   * @param filePath - Path to the file
+   * @returns Table dropdown definitions or null if none found
+   */
+  async getTableDefinitionsForFile(filePath) {
+    const lastSlash = filePath.lastIndexOf("/");
+    const folderPath = lastSlash > 0 ? filePath.substring(0, lastSlash) : "";
+    const folders = getFolderChain(folderPath, this.app);
+    for (const folder of folders) {
+      const definitions = await this.getTableDefinitionsForFolder(folder);
+      if (definitions !== null && definitions.definitions.size > 0) {
+        return definitions;
+      }
+    }
+    return null;
+  }
+  /**
+   * Get table definitions for a specific folder (checks for _dropdowns.md).
+   *
+   * @param folderPath - Path to the folder
+   * @returns Table definitions or null if no definition file exists or no tables section
+   */
+  async getTableDefinitionsForFolder(folderPath) {
+    const definitionPath = getDefinitionFilePath(folderPath);
+    const cached = this.tableCache.get(definitionPath);
+    if (cached) {
+      return cached.data;
+    }
+    const file = this.app.vault.getAbstractFileByPath(definitionPath);
+    if (!file || !("extension" in file)) {
+      return null;
+    }
+    try {
+      const content = await this.app.vault.read(file);
+      const result = parseTableDropdownDefinitions(content, definitionPath);
+      if (!result.success) {
+        console.error("Spicy Tools: Error parsing table definitions:", result.error);
+        this.emit({ type: "definitions-error", path: definitionPath, error: result.error });
+        return null;
+      }
+      this.tableCache.set(definitionPath, {
+        data: result.data,
+        mtime: Date.now(),
+        sourcePath: definitionPath
+      });
+      return result.data;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error("Spicy Tools: Error loading table definitions:", message);
+      this.emit({ type: "definitions-error", path: definitionPath, error: message });
+      return null;
+    }
+  }
+  /**
    * Force reload all definitions (clears cache).
    */
   async reloadAll() {
     this.cache.clear();
+    this.tableCache.clear();
     this.emit({ type: "definitions-cleared" });
   }
   /**
@@ -664,8 +802,16 @@ var DropdownManager = class {
    * Invalidate cached definitions for a path.
    */
   invalidateCache(path) {
+    let invalidated = false;
     if (this.cache.has(path)) {
       this.cache.delete(path);
+      invalidated = true;
+    }
+    if (this.tableCache.has(path)) {
+      this.tableCache.delete(path);
+      invalidated = true;
+    }
+    if (invalidated) {
       this.emit({ type: "definitions-cleared" });
     }
   }
@@ -694,6 +840,7 @@ var DropdownUI = class {
     this.boundHandleDocumentClick = this.handleDocumentClick.bind(this);
     this.boundHandleMenuClick = this.handleMenuClick.bind(this);
     this.boundHandleTriggerClick = this.handleTriggerClick.bind(this);
+    this.boundHandleMousedown = this.handleMousedown.bind(this);
     this.boundHandleKeydown = this.handleKeydown.bind(this);
     this.boundHandleFilterInput = this.handleFilterInput.bind(this);
     this.render();
@@ -743,7 +890,7 @@ var DropdownUI = class {
       if (values.length === 0) {
         trigger.addClass("empty");
         trigger.removeClass("mismatch");
-        trigger.createSpan({ text: placeholder });
+        trigger.createSpan({ cls: "spicy-dropdown-value", text: placeholder });
       } else {
         trigger.removeClass("empty");
         trigger.removeClass("mismatch");
@@ -765,7 +912,7 @@ var DropdownUI = class {
       if (values.length === 0) {
         trigger.addClass("empty");
         trigger.removeClass("mismatch");
-        trigger.createSpan({ text: placeholder });
+        trigger.createSpan({ cls: "spicy-dropdown-value", text: placeholder });
       } else {
         trigger.removeClass("empty");
         const value = values[0];
@@ -775,7 +922,7 @@ var DropdownUI = class {
         } else {
           trigger.removeClass("mismatch");
         }
-        trigger.createSpan({ text: String(value) });
+        trigger.createSpan({ cls: "spicy-dropdown-value", text: String(value) });
       }
     }
     trigger.createSpan({ cls: "spicy-dropdown-arrow", text: "\u25BC" });
@@ -823,6 +970,11 @@ var DropdownUI = class {
   attachEventListeners() {
     if (!this.elements.trigger || !this.elements.menu)
       return;
+    if (this.elements.wrapper) {
+      this.elements.wrapper.addEventListener("mousedown", this.boundHandleMousedown);
+    }
+    this.elements.trigger.addEventListener("mousedown", this.boundHandleMousedown);
+    this.elements.menu.addEventListener("mousedown", this.boundHandleMousedown);
     this.elements.trigger.addEventListener("click", this.boundHandleTriggerClick);
     this.elements.trigger.addEventListener("keydown", this.boundHandleKeydown);
     this.elements.menu.addEventListener("click", this.boundHandleMenuClick);
@@ -831,6 +983,16 @@ var DropdownUI = class {
       this.elements.filterInput.addEventListener("keydown", this.boundHandleKeydown);
     }
     document.addEventListener("click", this.boundHandleDocumentClick, true);
+  }
+  /**
+   * Handle mousedown on trigger and menu.
+   * CRITICAL: This prevents Obsidian's table cell editor from activating when
+   * clicking on our dropdown in Live Preview mode. Without this, Obsidian creates
+   * an inline textbox for cell editing which causes row expansion issues.
+   */
+  handleMousedown(e) {
+    e.preventDefault();
+    e.stopPropagation();
   }
   /**
    * Handle trigger click.
@@ -1107,9 +1269,7 @@ var DropdownUI = class {
     }
     return [];
   }
-  // ═══════════════════════════════════════════════════════════════════
   // Public API
-  // ═══════════════════════════════════════════════════════════════════
   /**
    * Update the dropdown value externally.
    */
@@ -1142,11 +1302,16 @@ var DropdownUI = class {
       return;
     this.isDestroyed = true;
     document.removeEventListener("click", this.boundHandleDocumentClick, true);
+    if (this.elements.wrapper) {
+      this.elements.wrapper.removeEventListener("mousedown", this.boundHandleMousedown);
+    }
     if (this.elements.trigger) {
+      this.elements.trigger.removeEventListener("mousedown", this.boundHandleMousedown);
       this.elements.trigger.removeEventListener("click", this.boundHandleTriggerClick);
       this.elements.trigger.removeEventListener("keydown", this.boundHandleKeydown);
     }
     if (this.elements.menu) {
+      this.elements.menu.removeEventListener("mousedown", this.boundHandleMousedown);
       this.elements.menu.removeEventListener("click", this.boundHandleMenuClick);
       this.elements.menu.remove();
     }
@@ -1668,24 +1833,13 @@ var _PropertyDropdownRegistry = class {
   removeDropdownFromElement(propertyEl) {
     propertyEl.removeClass("spicy-dropdown-active");
   }
-  // ═══════════════════════════════════════════════════════════════════
   // Interaction Lock
-  // ═══════════════════════════════════════════════════════════════════
-  /**
-   * Acquire an interaction lock.
-   */
   acquireLock() {
     this.interactionLockCount++;
   }
-  /**
-   * Release an interaction lock.
-   */
   releaseLock() {
     this.interactionLockCount = Math.max(0, this.interactionLockCount - 1);
   }
-  /**
-   * Check if any dropdown is being interacted with.
-   */
   isLocked() {
     return this.interactionLockCount > 0;
   }
@@ -4401,12 +4555,1186 @@ var BoardEmbed = class {
   }
 };
 
+// src/tables/TableParser.ts
+var TABLE_ROW_REGEX = /^\s*\|/;
+var SEPARATOR_CELL_REGEX = /^\s*:?-+:?\s*$/;
+function parseTablesFromMarkdown(content) {
+  const lines = content.split("\n");
+  const tables = [];
+  let i = 0;
+  while (i < lines.length) {
+    if (isTableRow(lines[i])) {
+      const tableResult = parseTableAtLine(lines, i);
+      if (tableResult.success) {
+        tables.push(tableResult.data);
+        i = tableResult.data.endLine + 1;
+        continue;
+      }
+    }
+    i++;
+  }
+  return tables;
+}
+function getCellPosition(table, row, column) {
+  if (row < 0 || row >= table.cells.length) {
+    return null;
+  }
+  if (column < 0 || column >= table.cells[row].length) {
+    return null;
+  }
+  return table.cells[row][column];
+}
+function parseTableAtLine(lines, startIndex) {
+  if (startIndex + 1 >= lines.length) {
+    return failure("Table must have at least header and separator rows");
+  }
+  const headerLine = lines[startIndex];
+  const separatorLine = lines[startIndex + 1];
+  const headerCells = parseCellsFromRow(headerLine, startIndex);
+  if (headerCells.length === 0) {
+    return failure("Header row has no cells");
+  }
+  const separatorValidation = validateSeparatorRow(separatorLine, headerCells.length);
+  if (!separatorValidation.success) {
+    return failure(separatorValidation.error);
+  }
+  const alignments = separatorValidation.data;
+  const headers = headerCells.map((cell) => cell.content);
+  const cells = [];
+  let endLine = startIndex + 1;
+  for (let i = startIndex + 2; i < lines.length; i++) {
+    const line = lines[i];
+    if (!isTableRow(line)) {
+      break;
+    }
+    const rowCells = parseCellsFromRow(line, i);
+    if (rowCells.length !== headerCells.length) {
+      break;
+    }
+    cells.push(rowCells);
+    endLine = i;
+  }
+  return success({
+    startLine: startIndex,
+    endLine,
+    headers,
+    cells,
+    alignments
+  });
+}
+function isTableRow(line) {
+  return TABLE_ROW_REGEX.test(line);
+}
+function validateSeparatorRow(line, expectedColumns) {
+  if (!isTableRow(line)) {
+    return failure("Separator row must start with pipe");
+  }
+  const cells = extractRawCells(line);
+  if (cells.length !== expectedColumns) {
+    return failure(
+      `Separator row has ${cells.length} columns, expected ${expectedColumns}`
+    );
+  }
+  const alignments = [];
+  for (let i = 0; i < cells.length; i++) {
+    const cell = cells[i].trim();
+    if (!SEPARATOR_CELL_REGEX.test(cell)) {
+      return failure(`Invalid separator cell at column ${i}: "${cell}"`);
+    }
+    alignments.push(parseAlignment(cell));
+  }
+  return success(alignments);
+}
+function parseAlignment(cell) {
+  const trimmed = cell.trim();
+  const startsWithColon = trimmed.startsWith(":");
+  const endsWithColon = trimmed.endsWith(":");
+  if (startsWithColon && endsWithColon) {
+    return "center";
+  }
+  if (endsWithColon) {
+    return "right";
+  }
+  return "left";
+}
+function parseCellsFromRow(line, lineNumber) {
+  const cells = [];
+  const rawCells = extractRawCellsWithPositions(line);
+  for (const rawCell of rawCells) {
+    const content = rawCell.content.trim();
+    const leadingWhitespace = rawCell.content.length - rawCell.content.trimStart().length;
+    const trailingWhitespace = rawCell.content.length - rawCell.content.trimEnd().length;
+    let startChar = rawCell.startChar + leadingWhitespace;
+    let endChar = rawCell.endChar - trailingWhitespace;
+    if (startChar >= endChar) {
+      startChar = rawCell.startChar;
+      endChar = rawCell.startChar;
+    }
+    cells.push({
+      line: lineNumber,
+      startChar,
+      endChar,
+      content
+    });
+  }
+  return cells;
+}
+function extractRawCellsWithPositions(line) {
+  const cells = [];
+  let inCell = false;
+  let cellStart = 0;
+  let cellContent = "";
+  let i = 0;
+  while (i < line.length) {
+    const char = line[i];
+    if (char === "\\" && i + 1 < line.length && line[i + 1] === "|") {
+      if (inCell) {
+        cellContent += "|";
+      }
+      i += 2;
+      continue;
+    }
+    if (char === "|") {
+      if (inCell) {
+        cells.push({
+          content: cellContent,
+          startChar: cellStart,
+          endChar: i
+        });
+        cellContent = "";
+      }
+      inCell = true;
+      cellStart = i + 1;
+      i++;
+      continue;
+    }
+    if (inCell) {
+      cellContent += char;
+    }
+    i++;
+  }
+  if (inCell && cellContent.length > 0) {
+    cells.push({
+      content: cellContent,
+      startChar: cellStart,
+      endChar: line.length
+    });
+  }
+  return cells;
+}
+function extractRawCells(line) {
+  const cellsWithPositions = extractRawCellsWithPositions(line);
+  return cellsWithPositions.map((c) => c.content);
+}
+
+// src/tables/TablePersistence.ts
+async function updateTableCell(app, file, tableIndex, rowIndex, columnIndex, newValue) {
+  return updateTableCells(app, file, [
+    { tableIndex, rowIndex, columnIndex, newValue }
+  ]);
+}
+async function updateTableCells(app, file, updates) {
+  if (updates.length === 0) {
+    return success(void 0);
+  }
+  let content;
+  try {
+    content = await app.vault.read(file);
+  } catch (err) {
+    return failure(`Failed to read file: ${err instanceof Error ? err.message : String(err)}`);
+  }
+  const tables = parseTablesFromMarkdown(content);
+  if (tables.length === 0) {
+    return failure("File contains no tables");
+  }
+  for (const update of updates) {
+    const validation = validateCellUpdate(tables, update);
+    if (!validation.success) {
+      return validation;
+    }
+  }
+  const sortedUpdates = [...updates].sort((a, b) => {
+    if (a.tableIndex !== b.tableIndex) {
+      return b.tableIndex - a.tableIndex;
+    }
+    if (a.rowIndex !== b.rowIndex) {
+      return b.rowIndex - a.rowIndex;
+    }
+    return b.columnIndex - a.columnIndex;
+  });
+  let newContent = content;
+  const lines = newContent.split("\n");
+  for (const update of sortedUpdates) {
+    const table = tables[update.tableIndex];
+    const cellPosition = getCellPosition(table, update.rowIndex, update.columnIndex);
+    if (!cellPosition) {
+      return failure(
+        `Cell not found at table ${update.tableIndex}, row ${update.rowIndex}, column ${update.columnIndex}`
+      );
+    }
+    const formattedValue = formatCellValue(update.newValue);
+    const line = lines[cellPosition.line];
+    const newLine = replaceInLine(
+      line,
+      cellPosition.startChar,
+      cellPosition.endChar,
+      formattedValue
+    );
+    lines[cellPosition.line] = newLine;
+  }
+  newContent = lines.join("\n");
+  try {
+    await app.vault.modify(file, newContent);
+  } catch (err) {
+    return failure(`Failed to write file: ${err instanceof Error ? err.message : String(err)}`);
+  }
+  return success(void 0);
+}
+function formatCellValue(value) {
+  if (value === null || value === void 0) {
+    return "";
+  }
+  if (Array.isArray(value)) {
+    if (value.length === 0) {
+      return "";
+    }
+    return value.map((v) => formatSingleValue(v)).join(", ");
+  }
+  return formatSingleValue(value);
+}
+function formatSingleValue(value) {
+  if (value === null || value === void 0) {
+    return "";
+  }
+  if (typeof value === "boolean") {
+    return value ? "true" : "false";
+  }
+  if (typeof value === "number") {
+    return String(value);
+  }
+  let str = String(value).trim();
+  str = escapePipes(str);
+  str = str.replace(/[\r\n]+/g, " ");
+  return str;
+}
+function escapePipes(str) {
+  const result = [];
+  let i = 0;
+  while (i < str.length) {
+    const char = str[i];
+    if (char === "\\" && i + 1 < str.length && str[i + 1] === "|") {
+      result.push("\\|");
+      i += 2;
+    } else if (char === "|") {
+      result.push("\\|");
+      i++;
+    } else {
+      result.push(char);
+      i++;
+    }
+  }
+  return result.join("");
+}
+function parseMultiValue(cellContent) {
+  if (!cellContent || cellContent.trim() === "") {
+    return [];
+  }
+  return cellContent.split(",").map((v) => v.trim()).filter((v) => v.length > 0);
+}
+function replaceInLine(line, startChar, endChar, replacement) {
+  const before = line.substring(0, startChar);
+  const after = line.substring(endChar);
+  const needsSpacing = replacement.length > 0;
+  const paddedReplacement = needsSpacing ? ` ${replacement} ` : " ";
+  const hasLeadingSpace = before.endsWith(" ") || before.endsWith("|");
+  const hasTrailingSpace = after.startsWith(" ") || after.startsWith("|");
+  let finalReplacement = replacement;
+  if (!hasLeadingSpace && replacement.length > 0) {
+    finalReplacement = " " + finalReplacement;
+  }
+  if (!hasTrailingSpace && replacement.length > 0) {
+    finalReplacement = finalReplacement + " ";
+  }
+  if (replacement.length === 0) {
+    const afterPipe = before.endsWith("|");
+    const beforePipe = after.startsWith("|");
+    if (afterPipe && beforePipe) {
+      finalReplacement = " ";
+    }
+  }
+  return before + finalReplacement + after;
+}
+function validateCellUpdate(tables, update) {
+  if (update.tableIndex < 0 || update.tableIndex >= tables.length) {
+    return failure(
+      `Invalid table index ${update.tableIndex}. File has ${tables.length} table(s).`
+    );
+  }
+  const table = tables[update.tableIndex];
+  if (update.rowIndex < 0 || update.rowIndex >= table.cells.length) {
+    return failure(
+      `Invalid row index ${update.rowIndex}. Table has ${table.cells.length} data row(s).`
+    );
+  }
+  if (update.columnIndex < 0 || update.columnIndex >= table.headers.length) {
+    return failure(
+      `Invalid column index ${update.columnIndex}. Table has ${table.headers.length} column(s).`
+    );
+  }
+  return success(void 0);
+}
+
+// src/tables/TableDropdownAdapter.ts
+var _TableDropdownAdapter = class {
+  constructor(app, file, context, definition) {
+    this.ui = null;
+    this.container = null;
+    this.isDestroyed = false;
+    // Callbacks
+    this.onInteractionChange = null;
+    // Update handling
+    this.pendingRefresh = false;
+    this.pendingValue = null;
+    this.hasPendingValue = false;
+    this.updateDebounceTimer = null;
+    this.app = app;
+    this.file = file;
+    this.context = context;
+    this.definition = definition;
+  }
+  /**
+   * Mount the dropdown UI into a table cell element.
+   */
+  mount(container) {
+    var _a;
+    if (this.isDestroyed)
+      return;
+    this.container = container;
+    this.container.empty();
+    const config = {
+      options: this.definition.options,
+      value: this.getCurrentValue(),
+      multi: (_a = this.definition.multi) != null ? _a : false,
+      placeholder: this.definition.multi ? "Select options..." : "Select..."
+    };
+    const events = {
+      onOpen: () => this.handleOpen(),
+      onClose: () => this.handleClose(),
+      onChange: (value) => this.handleChange(value)
+    };
+    this.ui = new DropdownUI(container, config, events);
+  }
+  /**
+   * Set a callback for when interaction state changes.
+   */
+  setInteractionCallback(callback) {
+    this.onInteractionChange = callback;
+  }
+  /**
+   * Get the cell context this adapter manages.
+   */
+  getContext() {
+    return this.context;
+  }
+  /**
+   * Get the file this adapter is bound to.
+   */
+  getFile() {
+    return this.file;
+  }
+  /**
+   * Check if the dropdown is currently being interacted with.
+   */
+  isInteracting() {
+    var _a, _b;
+    return (_b = (_a = this.ui) == null ? void 0 : _a.isInteracting()) != null ? _b : false;
+  }
+  /**
+   * Get current value from the cell context.
+   * For multi-select, parses comma-separated values.
+   */
+  getCurrentValue() {
+    const cellContent = this.context.currentValue;
+    if (!cellContent || cellContent.trim() === "") {
+      return this.definition.multi ? [] : null;
+    }
+    if (this.definition.multi) {
+      return parseMultiValue(cellContent);
+    }
+    const numericOption = this.definition.options.find(
+      (opt) => typeof opt === "number" && String(opt) === cellContent
+    );
+    if (numericOption !== void 0) {
+      return numericOption;
+    }
+    return cellContent;
+  }
+  /**
+   * Handle dropdown open event.
+   */
+  handleOpen() {
+    var _a;
+    (_a = this.onInteractionChange) == null ? void 0 : _a.call(this, true);
+  }
+  /**
+   * Handle dropdown close event.
+   */
+  handleClose() {
+    var _a;
+    (_a = this.onInteractionChange) == null ? void 0 : _a.call(this, false);
+    if (this.hasPendingValue) {
+      this.hasPendingValue = false;
+      this.writeCell(this.pendingValue);
+      this.pendingValue = null;
+    }
+    if (this.pendingRefresh) {
+      this.pendingRefresh = false;
+      this.refresh();
+    }
+  }
+  /**
+   * Handle value change from the UI.
+   * For multi-select, defers write until dropdown closes.
+   */
+  handleChange(newValue) {
+    if (this.isDestroyed)
+      return;
+    if (this.definition.multi) {
+      this.pendingValue = newValue;
+      this.hasPendingValue = true;
+      return;
+    }
+    if (this.updateDebounceTimer) {
+      clearTimeout(this.updateDebounceTimer);
+    }
+    this.updateDebounceTimer = setTimeout(() => {
+      this.updateDebounceTimer = null;
+      this.writeCell(newValue);
+    }, _TableDropdownAdapter.UPDATE_DEBOUNCE_MS);
+  }
+  /**
+   * Write value to the markdown table cell.
+   */
+  async writeCell(newValue) {
+    if (this.isDestroyed)
+      return;
+    try {
+      const formattedValue = formatCellValue(newValue);
+      const result = await updateTableCell(
+        this.app,
+        this.file,
+        this.context.tableIndex,
+        this.context.rowIndex,
+        this.context.columnIndex,
+        formattedValue
+      );
+      if (!result.success) {
+        console.error("Spicy Tools: Error updating table cell:", result.error);
+      }
+      this.context.currentValue = formattedValue;
+    } catch (error) {
+      console.error("Spicy Tools: Error updating table cell:", error);
+    }
+  }
+  /**
+   * Refresh the UI from the current cell value.
+   * Called when external changes are detected.
+   */
+  refresh() {
+    if (this.isDestroyed || !this.ui)
+      return;
+    if (this.ui.isInteracting()) {
+      this.pendingRefresh = true;
+      return;
+    }
+    const currentValue = this.getCurrentValue();
+    this.ui.setValue(currentValue);
+  }
+  /**
+   * Update the file reference (for file renames).
+   */
+  updateFile(newFile) {
+    this.file = newFile;
+    this.context.filePath = newFile.path;
+  }
+  /**
+   * Clean up resources.
+   */
+  destroy() {
+    if (this.isDestroyed)
+      return;
+    this.isDestroyed = true;
+    if (this.hasPendingValue) {
+      this.hasPendingValue = false;
+      this.writeCell(this.pendingValue);
+      this.pendingValue = null;
+    }
+    if (this.updateDebounceTimer) {
+      clearTimeout(this.updateDebounceTimer);
+      this.updateDebounceTimer = null;
+    }
+    if (this.ui) {
+      this.ui.destroy();
+      this.ui = null;
+    }
+    if (this.container) {
+      this.container.empty();
+      this.container.textContent = this.context.currentValue;
+    }
+    this.container = null;
+    this.onInteractionChange = null;
+  }
+};
+var TableDropdownAdapter = _TableDropdownAdapter;
+TableDropdownAdapter.UPDATE_DEBOUNCE_MS = 50;
+
+// src/tables/ReadingViewTableDropdowns.ts
+var import_obsidian4 = require("obsidian");
+var adapterRegistry = /* @__PURE__ */ new Map();
+var interactionLockCount = 0;
+function acquireLock() {
+  interactionLockCount++;
+}
+function releaseLock() {
+  interactionLockCount = Math.max(0, interactionLockCount - 1);
+}
+function isLocked() {
+  return interactionLockCount > 0;
+}
+function makeAdapterKey2(filePath, tableIndex, rowIndex, columnIndex) {
+  return `${filePath}:${tableIndex}:${rowIndex}:${columnIndex}`;
+}
+var TableDropdownRenderChild = class extends import_obsidian4.MarkdownRenderChild {
+  constructor(containerEl) {
+    super(containerEl);
+    this.adapters = [];
+  }
+  /**
+   * Register an adapter for cleanup when this render child is unloaded.
+   */
+  addAdapter(adapter) {
+    this.adapters.push(adapter);
+  }
+  /**
+   * Called when the element is removed from DOM or view mode changes.
+   */
+  onunload() {
+    for (const adapter of this.adapters) {
+      const context = adapter.getContext();
+      const key = makeAdapterKey2(
+        context.filePath,
+        context.tableIndex,
+        context.rowIndex,
+        context.columnIndex
+      );
+      adapterRegistry.delete(key);
+      adapter.destroy();
+    }
+    this.adapters = [];
+  }
+};
+function registerReadingViewTableDropdowns(plugin, dropdownManager) {
+  plugin.registerMarkdownPostProcessor(async (el, ctx) => {
+    if (isLocked()) {
+      return;
+    }
+    const tables = el.querySelectorAll("table");
+    if (tables.length === 0) {
+      return;
+    }
+    const sourcePath = ctx.sourcePath;
+    if (!sourcePath) {
+      return;
+    }
+    const file = plugin.app.vault.getAbstractFileByPath(sourcePath);
+    if (!file || !(file instanceof import_obsidian4.TFile)) {
+      return;
+    }
+    const definitions = await dropdownManager.getTableDefinitionsForFile(sourcePath);
+    if (!definitions || definitions.definitions.size === 0) {
+      return;
+    }
+    const globalTableOffset = countPreviousTables(el);
+    tables.forEach((tableEl, localTableIndex) => {
+      const tableIndex = globalTableOffset + localTableIndex;
+      processTable(
+        plugin,
+        tableEl,
+        tableIndex,
+        sourcePath,
+        file,
+        definitions,
+        ctx.addChild.bind(ctx)
+      );
+    });
+  });
+}
+function countPreviousTables(el) {
+  let count = 0;
+  let sibling = el.previousElementSibling;
+  while (sibling) {
+    count += sibling.querySelectorAll("table").length;
+    sibling = sibling.previousElementSibling;
+  }
+  return count;
+}
+function processTable(plugin, tableEl, tableIndex, sourcePath, file, definitions, addChild) {
+  const renderChild = new TableDropdownRenderChild(tableEl);
+  const headers = getTableHeaders(tableEl);
+  if (headers.length === 0) {
+    return;
+  }
+  const columnDefinitions = /* @__PURE__ */ new Map();
+  for (let colIndex = 0; colIndex < headers.length; colIndex++) {
+    const header = headers[colIndex];
+    const definition = definitions.definitions.get(header);
+    if (definition) {
+      columnDefinitions.set(colIndex, definition);
+    }
+  }
+  if (columnDefinitions.size === 0) {
+    return;
+  }
+  const tbody = tableEl.querySelector("tbody");
+  const rows = tbody ? tbody.querySelectorAll("tr") : tableEl.querySelectorAll("tr:not(:first-child)");
+  let hasDropdowns = false;
+  rows.forEach((rowEl, rowIndex) => {
+    const cells = rowEl.querySelectorAll("td");
+    cells.forEach((cellEl, cellIndex) => {
+      var _a;
+      const definition = columnDefinitions.get(cellIndex);
+      if (!definition)
+        return;
+      const key = makeAdapterKey2(sourcePath, tableIndex, rowIndex, cellIndex);
+      const existingAdapter = adapterRegistry.get(key);
+      if (existingAdapter) {
+        const existingDropdown = cellEl.querySelector(".spicy-dropdown");
+        if (existingDropdown) {
+          return;
+        }
+        existingAdapter.destroy();
+        adapterRegistry.delete(key);
+      }
+      const currentValue = ((_a = cellEl.textContent) == null ? void 0 : _a.trim()) || "";
+      const context = {
+        filePath: sourcePath,
+        tableIndex,
+        rowIndex,
+        columnIndex: cellIndex,
+        columnName: headers[cellIndex],
+        currentValue
+      };
+      const adapter = new TableDropdownAdapter(
+        plugin.app,
+        file,
+        context,
+        definition
+      );
+      adapter.setInteractionCallback((isInteracting) => {
+        if (isInteracting) {
+          acquireLock();
+        } else {
+          releaseLock();
+        }
+      });
+      adapter.mount(cellEl);
+      adapterRegistry.set(key, adapter);
+      renderChild.addAdapter(adapter);
+      hasDropdowns = true;
+      cellEl.addClass("spicy-dropdown-cell");
+    });
+  });
+  if (hasDropdowns) {
+    addChild(renderChild);
+  }
+}
+function getTableHeaders(tableEl) {
+  const headers = [];
+  const thead = tableEl.querySelector("thead");
+  if (thead) {
+    const headerCells = thead.querySelectorAll("th");
+    headerCells.forEach((cell) => {
+      var _a;
+      headers.push(((_a = cell.textContent) == null ? void 0 : _a.trim()) || "");
+    });
+    if (headers.length > 0)
+      return headers;
+  }
+  const firstRow = tableEl.querySelector("tr");
+  if (firstRow) {
+    const thCells = firstRow.querySelectorAll("th");
+    if (thCells.length > 0) {
+      thCells.forEach((cell) => {
+        var _a;
+        headers.push(((_a = cell.textContent) == null ? void 0 : _a.trim()) || "");
+      });
+      return headers;
+    }
+    const tdCells = firstRow.querySelectorAll("td");
+    tdCells.forEach((cell) => {
+      var _a;
+      headers.push(((_a = cell.textContent) == null ? void 0 : _a.trim()) || "");
+    });
+  }
+  return headers;
+}
+function clearReadingViewAdapters() {
+  for (const adapter of adapterRegistry.values()) {
+    adapter.destroy();
+  }
+  adapterRegistry.clear();
+  interactionLockCount = 0;
+}
+function refreshReadingViewDropdowns() {
+  clearReadingViewAdapters();
+}
+
+// src/tables/LivePreviewTableDropdowns.ts
+var import_view = require("@codemirror/view");
+
+// src/tables/TableDropdownWidget.ts
+var TableDropdownWidget = class {
+  constructor(container, config) {
+    this.dropdownUI = null;
+    this.isDestroyed = false;
+    this.container = container;
+    this.config = config;
+  }
+  /**
+   * Render the dropdown widget into the container.
+   */
+  render() {
+    var _a;
+    if (this.isDestroyed)
+      return;
+    const value = this.parseValue(this.config.currentValue);
+    const dropdownConfig = {
+      options: this.config.options,
+      value,
+      multi: (_a = this.config.multi) != null ? _a : false,
+      placeholder: "Select..."
+    };
+    const events = {
+      onOpen: () => {
+      },
+      onClose: () => {
+      },
+      onChange: (newValue) => {
+        const stringValue = this.serializeValue(newValue);
+        this.config.onChange(stringValue);
+      }
+    };
+    this.dropdownUI = new DropdownUI(this.container, dropdownConfig, events);
+  }
+  /**
+   * Clean up the widget and release resources.
+   */
+  destroy() {
+    if (this.isDestroyed)
+      return;
+    this.isDestroyed = true;
+    if (this.dropdownUI) {
+      this.dropdownUI.destroy();
+      this.dropdownUI = null;
+    }
+  }
+  /**
+   * Get the current value as a string.
+   */
+  getValue() {
+    if (!this.dropdownUI)
+      return this.config.currentValue;
+    return this.serializeValue(this.dropdownUI.getValue());
+  }
+  /**
+   * Set the current value from a string.
+   */
+  setValue(value) {
+    if (!this.dropdownUI || this.isDestroyed)
+      return;
+    const parsedValue = this.parseValue(value);
+    this.dropdownUI.setValue(parsedValue);
+  }
+  /**
+   * Check if the dropdown is currently interacting (open).
+   */
+  isInteracting() {
+    var _a, _b;
+    return (_b = (_a = this.dropdownUI) == null ? void 0 : _a.isInteracting()) != null ? _b : false;
+  }
+  /**
+   * Parse a string value into DropdownValue format.
+   * For multi-select, splits comma-separated values.
+   */
+  parseValue(value) {
+    const trimmed = value.trim();
+    if (trimmed === "") {
+      return this.config.multi ? [] : null;
+    }
+    if (this.config.multi) {
+      const values = trimmed.split(",").map((v) => v.trim()).filter((v) => v !== "");
+      return values.map((v) => this.parseOptionValue(v));
+    }
+    return this.parseOptionValue(trimmed);
+  }
+  /**
+   * Serialize a DropdownValue back to a string for markdown persistence.
+   * Multi-values are joined with comma and space.
+   */
+  serializeValue(value) {
+    if (value === null || value === void 0) {
+      return "";
+    }
+    if (Array.isArray(value)) {
+      return value.map((v) => String(v)).join(", ");
+    }
+    return String(value);
+  }
+  /**
+   * Parse a string value, preserving number type if it matches a numeric option.
+   */
+  parseOptionValue(value) {
+    const numericOption = this.config.options.find(
+      (opt) => typeof opt === "number" && String(opt) === value
+    );
+    if (numericOption !== void 0) {
+      return numericOption;
+    }
+    return value;
+  }
+};
+
+// src/tables/LivePreviewTableDropdowns.ts
+function createLivePreviewTablePlugin(getDefinitions, getEditorView) {
+  return import_view.ViewPlugin.fromClass(
+    class {
+      constructor(view) {
+        this.mountedWidgets = [];
+        this.observer = null;
+        this.pendingUpdate = null;
+        this.view = view;
+        this.setupObserver();
+        this.scheduleUpdate();
+      }
+      /**
+       * Set up MutationObserver to watch for table changes.
+       */
+      setupObserver() {
+        this.observer = new MutationObserver((mutations) => {
+          const hasTableChanges = mutations.some((m) => {
+            if (m.type === "childList") {
+              const hasTable = (nodes) => Array.from(nodes).some(
+                (n) => {
+                  var _a;
+                  return n instanceof HTMLElement && (n.tagName === "TABLE" || ((_a = n.querySelector) == null ? void 0 : _a.call(n, "table")));
+                }
+              );
+              return hasTable(m.addedNodes) || hasTable(m.removedNodes);
+            }
+            return false;
+          });
+          if (hasTableChanges) {
+            this.scheduleUpdate();
+          }
+        });
+        this.observer.observe(this.view.contentDOM, {
+          childList: true,
+          subtree: true
+        });
+      }
+      /**
+       * Schedule an update to process tables.
+       * Debounces rapid changes.
+       */
+      scheduleUpdate() {
+        if (this.pendingUpdate !== null) {
+          cancelAnimationFrame(this.pendingUpdate);
+        }
+        this.pendingUpdate = requestAnimationFrame(() => {
+          this.pendingUpdate = null;
+          this.processTables();
+        });
+      }
+      /**
+       * Process all tables in the editor and mount dropdowns.
+       */
+      processTables() {
+        const definitions = getDefinitions();
+        if (!definitions || definitions.definitions.size === 0) {
+          this.clearWidgets();
+          return;
+        }
+        const tables = this.view.contentDOM.querySelectorAll("table");
+        if (tables.length === 0) {
+          this.clearWidgets();
+          return;
+        }
+        const docContent = this.view.state.doc.toString();
+        const parsedTables = parseTablesFromMarkdown(docContent);
+        this.clearWidgets();
+        tables.forEach((tableEl, tableIndex) => {
+          const parsed = parsedTables[tableIndex];
+          if (!parsed)
+            return;
+          const headerRow = tableEl.querySelector("thead tr, tr:first-child");
+          if (!headerRow)
+            return;
+          const headers = Array.from(headerRow.querySelectorAll("th, td")).map(
+            (cell) => {
+              var _a;
+              return ((_a = cell.textContent) == null ? void 0 : _a.trim()) || "";
+            }
+          );
+          const columnDefinitions = /* @__PURE__ */ new Map();
+          headers.forEach((header, colIndex) => {
+            const def = definitions.definitions.get(header);
+            if (def) {
+              columnDefinitions.set(colIndex, { name: header, def });
+            }
+          });
+          if (columnDefinitions.size === 0)
+            return;
+          const bodyRows = tableEl.querySelectorAll("tbody tr, tr:not(:first-child)");
+          bodyRows.forEach((row, rowIndex) => {
+            if (rowIndex === 0 && parsed.cells.length > 0) {
+            }
+            const cells = row.querySelectorAll("td");
+            cells.forEach((cell, colIndex) => {
+              const colInfo = columnDefinitions.get(colIndex);
+              if (!colInfo)
+                return;
+              const parsedRow = parsed.cells[rowIndex];
+              if (!parsedRow)
+                return;
+              const parsedCell = parsedRow[colIndex];
+              if (!parsedCell)
+                return;
+              this.mountDropdown(
+                cell,
+                colInfo.name,
+                colInfo.def,
+                parsedCell,
+                rowIndex
+              );
+            });
+          });
+        });
+      }
+      /**
+       * Mount a dropdown widget in a table cell.
+       */
+      mountDropdown(cell, columnName, definition, parsedCell, rowIndex) {
+        const doc = this.view.state.doc;
+        const lineInfo = doc.line(parsedCell.line + 1);
+        const from = lineInfo.from + parsedCell.startChar;
+        const to = lineInfo.from + parsedCell.endChar;
+        const config = {
+          options: definition.options,
+          currentValue: parsedCell.content,
+          multi: definition.multi,
+          onChange: (newValue) => {
+            this.handleValueChange(from, to, newValue);
+          }
+        };
+        const cellMousedownHandler = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+        };
+        cell.addEventListener("mousedown", cellMousedownHandler, { capture: true });
+        cell.addEventListener("pointerdown", cellMousedownHandler, { capture: true });
+        cell.textContent = "";
+        const widget = new TableDropdownWidget(cell, config);
+        widget.render();
+        this.mountedWidgets.push({
+          widget,
+          cell,
+          columnName,
+          rowIndex,
+          cellMousedownHandler
+          // Store for cleanup
+        });
+      }
+      /**
+       * Handle value change by updating the document.
+       */
+      handleValueChange(from, to, newValue) {
+        const paddedValue = newValue.length > 0 ? ` ${newValue} ` : " ";
+        this.view.dispatch({
+          changes: {
+            from,
+            to,
+            insert: paddedValue
+          }
+        });
+      }
+      /**
+       * Clear all mounted widgets.
+       */
+      clearWidgets() {
+        for (const mounted of this.mountedWidgets) {
+          mounted.cell.removeEventListener("mousedown", mounted.cellMousedownHandler, { capture: true });
+          mounted.cell.removeEventListener("pointerdown", mounted.cellMousedownHandler, { capture: true });
+          mounted.widget.destroy();
+        }
+        this.mountedWidgets = [];
+      }
+      /**
+       * Called on editor updates.
+       */
+      update(update) {
+        if (update.docChanged || update.viewportChanged) {
+          this.scheduleUpdate();
+        }
+      }
+      /**
+       * Clean up on destroy.
+       */
+      destroy() {
+        if (this.pendingUpdate !== null) {
+          cancelAnimationFrame(this.pendingUpdate);
+        }
+        if (this.observer) {
+          this.observer.disconnect();
+          this.observer = null;
+        }
+        this.clearWidgets();
+      }
+    }
+  );
+}
+var LivePreviewTableDropdownManager = class {
+  constructor(plugin, dropdownManager) {
+    this.extension = null;
+    this.currentDefinitions = null;
+    this.unsubscribe = null;
+    this.plugin = plugin;
+    this.dropdownManager = dropdownManager;
+  }
+  /**
+   * Start the manager and register the editor extension.
+   */
+  start() {
+    const viewPlugin = createLivePreviewTablePlugin(
+      () => this.currentDefinitions,
+      () => null
+      // Not needed for this implementation
+    );
+    this.extension = viewPlugin;
+    this.plugin.registerEditorExtension(this.extension);
+    this.unsubscribe = this.dropdownManager.on((event) => {
+      if (event.type === "definitions-loaded" || event.type === "definitions-cleared") {
+        this.refreshDefinitions();
+      }
+    });
+    this.refreshDefinitions();
+  }
+  /**
+   * Stop the manager and clean up.
+   */
+  stop() {
+    if (this.unsubscribe) {
+      this.unsubscribe();
+      this.unsubscribe = null;
+    }
+    this.extension = null;
+    this.currentDefinitions = null;
+  }
+  /**
+   * Refresh definitions from the dropdown manager.
+   */
+  async refreshDefinitions() {
+    const activeFile = this.plugin.app.workspace.getActiveFile();
+    if (!activeFile) {
+      this.currentDefinitions = null;
+      return;
+    }
+    this.currentDefinitions = await this.dropdownManager.getTableDefinitionsForFile(
+      activeFile.path
+    );
+  }
+};
+function registerLivePreviewTableDropdowns(plugin, dropdownManager) {
+  const manager = new LivePreviewTableDropdownManager(plugin, dropdownManager);
+  manager.start();
+  return manager;
+}
+
+// src/tables/TableDropdownCoordinator.ts
+var TableDropdownCoordinator = class {
+  constructor(plugin, app, dropdownManager) {
+    // Live Preview manager (CM6 ViewPlugin)
+    this.livePreviewManager = null;
+    // Unsubscribe function for DropdownManager events
+    this.unsubscribeFromManager = null;
+    // Track if initialized
+    this.initialized = false;
+    this.plugin = plugin;
+    this.app = app;
+    this.dropdownManager = dropdownManager;
+  }
+  /**
+   * Initialize the table dropdown system.
+   * Registers both implementations:
+   * - Reading View: registerMarkdownPostProcessor
+   * - Live Preview: CodeMirror 6 ViewPlugin
+   */
+  initialize() {
+    if (this.initialized)
+      return;
+    registerReadingViewTableDropdowns(this.plugin, this.dropdownManager);
+    this.livePreviewManager = registerLivePreviewTableDropdowns(
+      this.plugin,
+      this.dropdownManager
+    );
+    this.unsubscribeFromManager = this.dropdownManager.on((event) => {
+      if (event.type === "definitions-cleared") {
+        this.refresh();
+      }
+    });
+    this.initialized = true;
+  }
+  /**
+   * Clean up all resources.
+   * Called when the plugin is unloaded.
+   */
+  destroy() {
+    if (this.unsubscribeFromManager) {
+      this.unsubscribeFromManager();
+      this.unsubscribeFromManager = null;
+    }
+    clearReadingViewAdapters();
+    if (this.livePreviewManager) {
+      this.livePreviewManager.stop();
+      this.livePreviewManager = null;
+    }
+    this.initialized = false;
+  }
+  /**
+   * Force refresh all table dropdowns.
+   * Refreshes both Reading View and Live Preview implementations.
+   */
+  async refresh() {
+    refreshReadingViewDropdowns();
+    if (this.livePreviewManager) {
+      await this.livePreviewManager.refreshDefinitions();
+    }
+  }
+  /**
+   * Check if the coordinator is initialized.
+   */
+  isInitialized() {
+    return this.initialized;
+  }
+};
+
 // src/main.ts
-var SpicyToolsPlugin = class extends import_obsidian4.Plugin {
+var SpicyToolsPlugin = class extends import_obsidian5.Plugin {
   constructor() {
     super(...arguments);
     this.dropdownManager = null;
     this.propertyRegistry = null;
+    this.tableCoordinator = null;
     this.boardManagerFactory = null;
     /**
      * Track which files should be shown as kanban vs markdown.
@@ -4430,6 +5758,10 @@ var SpicyToolsPlugin = class extends import_obsidian4.Plugin {
     if (this.propertyRegistry) {
       this.propertyRegistry.stop();
       this.propertyRegistry = null;
+    }
+    if (this.tableCoordinator) {
+      this.tableCoordinator.destroy();
+      this.tableCoordinator = null;
     }
     if (this.dropdownManager) {
       this.dropdownManager.destroy();
@@ -4477,6 +5809,8 @@ var SpicyToolsPlugin = class extends import_obsidian4.Plugin {
     });
     this.propertyRegistry = new PropertyDropdownRegistry(this.app, this.dropdownManager);
     this.propertyRegistry.start();
+    this.tableCoordinator = new TableDropdownCoordinator(this, this.app, this.dropdownManager);
+    this.tableCoordinator.initialize();
     console.log("Dropdowns feature enabled");
   }
   /**
@@ -4500,7 +5834,7 @@ var SpicyToolsPlugin = class extends import_obsidian4.Plugin {
         source
       );
       await embed.render();
-      const child = new import_obsidian4.MarkdownRenderChild(el);
+      const child = new import_obsidian5.MarkdownRenderChild(el);
       child.onunload = () => embed.destroy();
       ctx.addChild(child);
     });
@@ -4556,11 +5890,11 @@ var SpicyToolsPlugin = class extends import_obsidian4.Plugin {
    */
   patchWorkspaceLeaf() {
     const self = this;
-    const originalSetViewState = import_obsidian4.WorkspaceLeaf.prototype.setViewState;
+    const originalSetViewState = import_obsidian5.WorkspaceLeaf.prototype.setViewState;
     this.register(() => {
-      import_obsidian4.WorkspaceLeaf.prototype.setViewState = originalSetViewState;
+      import_obsidian5.WorkspaceLeaf.prototype.setViewState = originalSetViewState;
     });
-    import_obsidian4.WorkspaceLeaf.prototype.setViewState = async function(state, eState) {
+    import_obsidian5.WorkspaceLeaf.prototype.setViewState = async function(state, eState) {
       var _a, _b;
       if (state.type === "markdown" && ((_a = state.state) == null ? void 0 : _a.file) && typeof state.state.file === "string") {
         const filePath = state.state.file;
@@ -4572,7 +5906,7 @@ var SpicyToolsPlugin = class extends import_obsidian4.Plugin {
           const wantsSourceMode = requestedMode === "source";
           if (explicitMode !== "markdown" && !wantsSourceMode) {
             const configFile = self.app.vault.getAbstractFileByPath(filePath);
-            if (configFile && configFile instanceof import_obsidian4.TFile) {
+            if (configFile && configFile instanceof import_obsidian5.TFile) {
               try {
                 const content = await self.app.vault.read(configFile);
                 const parseResult = parseBoardConfig(content, filePath);
@@ -4613,7 +5947,7 @@ var SpicyToolsPlugin = class extends import_obsidian4.Plugin {
    */
   async toggleBoardMarkdownView(file) {
     var _a;
-    const activeLeaf = ((_a = this.app.workspace.getActiveViewOfType(import_obsidian4.MarkdownView)) == null ? void 0 : _a.leaf) || this.app.workspace.getLeavesOfType(KANBAN_VIEW_TYPE).find(
+    const activeLeaf = ((_a = this.app.workspace.getActiveViewOfType(import_obsidian5.MarkdownView)) == null ? void 0 : _a.leaf) || this.app.workspace.getLeavesOfType(KANBAN_VIEW_TYPE).find(
       (leaf) => {
         var _a2;
         return leaf.view.getFolderPath() === (((_a2 = file.parent) == null ? void 0 : _a2.path) || "");
@@ -4629,7 +5963,7 @@ var SpicyToolsPlugin = class extends import_obsidian4.Plugin {
         type: "markdown",
         state: { file: filePath }
       });
-    } else if (currentView instanceof import_obsidian4.MarkdownView) {
+    } else if (currentView instanceof import_obsidian5.MarkdownView) {
       delete this.kanbanFileModes[filePath];
       await activeLeaf.setViewState({
         type: "markdown",
@@ -4658,7 +5992,7 @@ var SpicyToolsPlugin = class extends import_obsidian4.Plugin {
       return;
     const manager = await this.boardManagerFactory.getManager(folderPath);
     if (!manager) {
-      new import_obsidian4.Notice(`No board found in ${folderPath || "root"}`);
+      new import_obsidian5.Notice(`No board found in ${folderPath || "root"}`);
       return;
     }
     await leaf.setViewState({
@@ -4669,29 +6003,6 @@ var SpicyToolsPlugin = class extends import_obsidian4.Plugin {
     if (view) {
       await view.setBoard(manager, folderPath);
     }
-  }
-  /**
-   * Find existing BoardViews in the workspace.
-   * Returns both a board matching the specified folder and any uninitialized board.
-   *
-   * @param folderPath - Path to find a matching board for
-   * @returns Object with matchingBoard (exact match) and uninitializedBoard (empty folderPath)
-   */
-  findBoardViews(folderPath) {
-    let matchingBoard = null;
-    let uninitializedBoard = null;
-    this.app.workspace.iterateAllLeaves((leaf) => {
-      const isBoardView = leaf.view instanceof BoardView;
-      if (!isBoardView)
-        return;
-      const viewFolderPath = leaf.view.getFolderPath();
-      if (viewFolderPath === folderPath) {
-        matchingBoard = leaf;
-      } else if (viewFolderPath === "") {
-        uninitializedBoard = leaf;
-      }
-    });
-    return { matchingBoard, uninitializedBoard };
   }
   /**
    * Wait for a leaf to have a BoardView ready.
@@ -4725,7 +6036,7 @@ var SpicyToolsPlugin = class extends import_obsidian4.Plugin {
     const checkFolder = async (folder) => {
       const configPath = folder.path ? `${folder.path}/${BOARD_CONFIG_FILENAME}` : BOARD_CONFIG_FILENAME;
       const configFile = this.app.vault.getAbstractFileByPath(configPath);
-      if (configFile && configFile instanceof import_obsidian4.TFile) {
+      if (configFile && configFile instanceof import_obsidian5.TFile) {
         try {
           const content = await this.app.vault.read(configFile);
           const result = parseBoardConfig(content, configPath);
@@ -4739,7 +6050,7 @@ var SpicyToolsPlugin = class extends import_obsidian4.Plugin {
         }
       }
       for (const child of folder.children) {
-        if (child instanceof import_obsidian4.TFolder) {
+        if (child instanceof import_obsidian5.TFolder) {
           await checkFolder(child);
         }
       }
@@ -4750,9 +6061,9 @@ var SpicyToolsPlugin = class extends import_obsidian4.Plugin {
     }
     if (validBoards.length === 0) {
       if (invalidBoards.length > 0) {
-        new import_obsidian4.Notice(`Found ${invalidBoards.length} board(s) with invalid configuration. Check console for details.`);
+        new import_obsidian5.Notice(`Found ${invalidBoards.length} board(s) with invalid configuration. Check console for details.`);
       } else {
-        new import_obsidian4.Notice("No Kanban boards found. Create a _board.md file in a folder to create a board.");
+        new import_obsidian5.Notice("No Kanban boards found. Create a _board.md file in a folder to create a board.");
       }
       return;
     }
@@ -4761,7 +6072,7 @@ var SpicyToolsPlugin = class extends import_obsidian4.Plugin {
       return;
     }
     await this.openBoard(validBoards[0]);
-    new import_obsidian4.Notice(`Found ${validBoards.length} valid boards. Opening: ${validBoards[0] || "root"}`);
+    new import_obsidian5.Notice(`Found ${validBoards.length} valid boards. Opening: ${validBoards[0] || "root"}`);
   }
   /**
    * Reload dropdown definitions from all _dropdowns.md files.
@@ -4774,6 +6085,9 @@ var SpicyToolsPlugin = class extends import_obsidian4.Plugin {
     }
     if (this.propertyRegistry) {
       await this.propertyRegistry.refresh();
+    }
+    if (this.tableCoordinator) {
+      await this.tableCoordinator.refresh();
     }
   }
 };

@@ -2,11 +2,13 @@ import { Plugin, TFolder, TFile, Notice, MarkdownRenderChild, MarkdownView, Work
 import { SpicyToolsSettings, SpicyToolsSettingTab, DEFAULT_SETTINGS } from './settings';
 import { DropdownManager, PropertyDropdownRegistry } from './dropdowns';
 import { BoardManagerFactory, BoardView, KANBAN_VIEW_TYPE, BOARD_CONFIG_FILENAME, BoardEmbed, parseBoardConfig } from './kanban';
+import { TableDropdownCoordinator } from './tables';
 
 export default class SpicyToolsPlugin extends Plugin {
 	settings: SpicyToolsSettings;
 	dropdownManager: DropdownManager | null = null;
 	propertyRegistry: PropertyDropdownRegistry | null = null;
+	tableCoordinator: TableDropdownCoordinator | null = null;
 	boardManagerFactory: BoardManagerFactory | null = null;
 
 	/**
@@ -39,6 +41,12 @@ export default class SpicyToolsPlugin extends Plugin {
 		if (this.propertyRegistry) {
 			this.propertyRegistry.stop();
 			this.propertyRegistry = null;
+		}
+
+		// Clean up table coordinator
+		if (this.tableCoordinator) {
+			this.tableCoordinator.destroy();
+			this.tableCoordinator = null;
 		}
 
 		// Clean up dropdown manager
@@ -101,6 +109,10 @@ export default class SpicyToolsPlugin extends Plugin {
 		// Initialize PropertyDropdownRegistry to watch for and replace property inputs
 		this.propertyRegistry = new PropertyDropdownRegistry(this.app, this.dropdownManager);
 		this.propertyRegistry.start();
+
+		// Initialize TableDropdownCoordinator for both Reading View and Live Preview
+		this.tableCoordinator = new TableDropdownCoordinator(this, this.app, this.dropdownManager);
+		this.tableCoordinator.initialize();
 
 		console.log('Dropdowns feature enabled');
 	}
@@ -362,36 +374,6 @@ export default class SpicyToolsPlugin extends Plugin {
 	}
 
 	/**
-	 * Find existing BoardViews in the workspace.
-	 * Returns both a board matching the specified folder and any uninitialized board.
-	 *
-	 * @param folderPath - Path to find a matching board for
-	 * @returns Object with matchingBoard (exact match) and uninitializedBoard (empty folderPath)
-	 */
-	private findBoardViews(folderPath: string): {
-		matchingBoard: WorkspaceLeaf | null;
-		uninitializedBoard: WorkspaceLeaf | null;
-	} {
-		let matchingBoard: WorkspaceLeaf | null = null;
-		let uninitializedBoard: WorkspaceLeaf | null = null;
-
-		this.app.workspace.iterateAllLeaves((leaf) => {
-			const isBoardView = leaf.view instanceof BoardView;
-			if (!isBoardView) return;
-
-			const viewFolderPath = (leaf.view as BoardView).getFolderPath();
-
-			if (viewFolderPath === folderPath) {
-				matchingBoard = leaf;
-			} else if (viewFolderPath === '') {
-				uninitializedBoard = leaf;
-			}
-		});
-
-		return { matchingBoard, uninitializedBoard };
-	}
-
-	/**
 	 * Wait for a leaf to have a BoardView ready.
 	 * Obsidian's setViewState resolves before the view is fully instantiated.
 	 */
@@ -497,6 +479,11 @@ export default class SpicyToolsPlugin extends Plugin {
 		// Refresh the property registry to pick up new definitions
 		if (this.propertyRegistry) {
 			await this.propertyRegistry.refresh();
+		}
+
+		// Refresh the table coordinator to pick up new definitions
+		if (this.tableCoordinator) {
+			await this.tableCoordinator.refresh();
 		}
 	}
 }

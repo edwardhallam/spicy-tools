@@ -4,6 +4,7 @@ module.exports = {
 	testEnvironment: 'jsdom',
 	roots: ['<rootDir>/tests'],
 	testMatch: ['**/*.test.ts'],
+	testPathIgnorePatterns: ['/node_modules/', '/tests/ui/'],
 	moduleNameMapper: {
 		'^obsidian$': '<rootDir>/tests/__mocks__/obsidian.ts',
 		'^@dropdowns/(.*)$': '<rootDir>/src/dropdowns/$1',

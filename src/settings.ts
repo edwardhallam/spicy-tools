@@ -33,9 +33,7 @@ export class SpicyToolsSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		// ═══════════════════════════════════════════════════════════
 		// Features Section
-		// ═══════════════════════════════════════════════════════════
 		containerEl.createEl('h2', { text: 'Features' });
 
 		new Setting(containerEl)
@@ -66,9 +64,7 @@ export class SpicyToolsSettingTab extends PluginSettingTab {
 					})
 			);
 
-		// ═══════════════════════════════════════════════════════════
 		// Dropdowns Section
-		// ═══════════════════════════════════════════════════════════
 		containerEl.createEl('h2', { text: 'Dropdowns' });
 
 		new Setting(containerEl)
@@ -122,9 +118,7 @@ priority:
 			textArea.style.fontFamily = 'monospace';
 		}
 
-		// ═══════════════════════════════════════════════════════════
 		// Kanban Section
-		// ═══════════════════════════════════════════════════════════
 		containerEl.createEl('h2', { text: 'Kanban Boards' });
 
 		new Setting(containerEl)

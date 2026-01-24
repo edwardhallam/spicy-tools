@@ -86,6 +86,7 @@ export class DropdownUI {
 	private boundHandleDocumentClick: (e: MouseEvent) => void;
 	private boundHandleMenuClick: (e: MouseEvent) => void;
 	private boundHandleTriggerClick: (e: MouseEvent) => void;
+	private boundHandleMousedown: (e: MouseEvent) => void;
 	private boundHandleKeydown: (e: KeyboardEvent) => void;
 	private boundHandleFilterInput: (e: Event) => void;
 
@@ -106,6 +107,7 @@ export class DropdownUI {
 		this.boundHandleDocumentClick = this.handleDocumentClick.bind(this);
 		this.boundHandleMenuClick = this.handleMenuClick.bind(this);
 		this.boundHandleTriggerClick = this.handleTriggerClick.bind(this);
+		this.boundHandleMousedown = this.handleMousedown.bind(this);
 		this.boundHandleKeydown = this.handleKeydown.bind(this);
 		this.boundHandleFilterInput = this.handleFilterInput.bind(this);
 
@@ -171,7 +173,7 @@ export class DropdownUI {
 			if (values.length === 0) {
 				trigger.addClass('empty');
 				trigger.removeClass('mismatch');
-				trigger.createSpan({ text: placeholder });
+				trigger.createSpan({ cls: 'spicy-dropdown-value', text: placeholder });
 			} else {
 				trigger.removeClass('empty');
 				trigger.removeClass('mismatch');
@@ -196,7 +198,7 @@ export class DropdownUI {
 			if (values.length === 0) {
 				trigger.addClass('empty');
 				trigger.removeClass('mismatch');
-				trigger.createSpan({ text: placeholder });
+				trigger.createSpan({ cls: 'spicy-dropdown-value', text: placeholder });
 			} else {
 				trigger.removeClass('empty');
 				const value = values[0];
@@ -208,7 +210,7 @@ export class DropdownUI {
 					trigger.removeClass('mismatch');
 				}
 
-				trigger.createSpan({ text: String(value) });
+				trigger.createSpan({ cls: 'spicy-dropdown-value', text: String(value) });
 			}
 		}
 
@@ -266,6 +268,16 @@ export class DropdownUI {
 	private attachEventListeners(): void {
 		if (!this.elements.trigger || !this.elements.menu) return;
 
+		// CRITICAL: Handle mousedown to prevent Obsidian's table cell editor from activating.
+		// Mousedown fires before click and before focus, so preventDefault here stops
+		// Obsidian from creating its inline cell editor textbox.
+		// We add this to wrapper, trigger, AND menu to catch clicks anywhere in our component.
+		if (this.elements.wrapper) {
+			this.elements.wrapper.addEventListener('mousedown', this.boundHandleMousedown);
+		}
+		this.elements.trigger.addEventListener('mousedown', this.boundHandleMousedown);
+		this.elements.menu.addEventListener('mousedown', this.boundHandleMousedown);
+
 		// Trigger click - toggle dropdown
 		this.elements.trigger.addEventListener('click', this.boundHandleTriggerClick);
 
@@ -284,6 +296,17 @@ export class DropdownUI {
 		// Click outside to close - use capture phase for reliability
 		// This ensures we catch the click before it propagates
 		document.addEventListener('click', this.boundHandleDocumentClick, true);
+	}
+
+	/**
+	 * Handle mousedown on trigger and menu.
+	 * CRITICAL: This prevents Obsidian's table cell editor from activating when
+	 * clicking on our dropdown in Live Preview mode. Without this, Obsidian creates
+	 * an inline textbox for cell editing which causes row expansion issues.
+	 */
+	private handleMousedown(e: MouseEvent): void {
+		e.preventDefault();
+		e.stopPropagation();
 	}
 
 	/**
@@ -615,9 +638,7 @@ export class DropdownUI {
 		return [];
 	}
 
-	// ═══════════════════════════════════════════════════════════════════
 	// Public API
-	// ═══════════════════════════════════════════════════════════════════
 
 	/**
 	 * Update the dropdown value externally.
@@ -658,12 +679,18 @@ export class DropdownUI {
 		document.removeEventListener('click', this.boundHandleDocumentClick, true);
 
 		// Remove element-level listeners
+		if (this.elements.wrapper) {
+			this.elements.wrapper.removeEventListener('mousedown', this.boundHandleMousedown);
+		}
+
 		if (this.elements.trigger) {
+			this.elements.trigger.removeEventListener('mousedown', this.boundHandleMousedown);
 			this.elements.trigger.removeEventListener('click', this.boundHandleTriggerClick);
 			this.elements.trigger.removeEventListener('keydown', this.boundHandleKeydown);
 		}
 
 		if (this.elements.menu) {
+			this.elements.menu.removeEventListener('mousedown', this.boundHandleMousedown);
 			this.elements.menu.removeEventListener('click', this.boundHandleMenuClick);
 			// Menu is appended to document.body, so we need to remove it explicitly
 			this.elements.menu.remove();

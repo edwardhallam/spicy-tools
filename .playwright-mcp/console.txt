@@ -1,0 +1,14 @@
+[LOG] %cObsidian Developer Console color:#7f6df2; font-size:40px; font-weight:bold; @ app://obsidian.md/app.js:0
+[LOG] loading iconize @ plugin:obsidian-icon-folder:6482
+[LOG] loading BRAT @ plugin:obsidian42-brat:42
+[LOG] New LLM chain created. @ plugin:copilot:220
+[LOG] Dropdowns feature enabled @ plugin:spicy-tools:5627
+[LOG] Kanban feature enabled @ plugin:spicy-tools:5695
+[LOG] Spicy Tools loaded @ plugin:spicy-tools:5568
+[LOG] Spicy Tools: Loaded definitions from Health/_dropdowns.md @ plugin:spicy-tools:5613
+[LOG] Spicy Tools: Loaded definitions from Projects/spicy-tools-test-data/inheritance-test/_dropdowns.md @ plugin:spicy-tools:5613
+[LOG] Spicy Tools: Loaded definitions from Projects/spicy-tools-test-data/invalid-dropdowns/_dropdowns.md @ plugin:spicy-tools:5613
+[LOG] Spicy Tools: Loaded definitions from Projects/spicy-tools-test-data/valid-dropdowns/_dropdowns.md @ plugin:spicy-tools:5613
+[LOG] Spicy Tools: Loaded definitions from Projects/spicy-tools-test-data/inheritance-test/child-folder/_dropdowns.md @ plugin:spicy-tools:5613
+[LOG] Spicy Tools: Loaded definitions from Health/_dropdowns.md @ plugin:spicy-tools:5613
+[LOG] Detected vector length: 3072 for model: text-embedding-3-large @ plugin:copilot:427
