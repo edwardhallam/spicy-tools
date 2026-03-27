@@ -4,6 +4,10 @@ node_modules/
 # Test artifacts
 test-results/
 coverage/
+tests/ui/*.png
+
+# Playwright MCP screenshots (may contain PII from vault)
+.playwright-mcp/
 
 # Claude Code configuration (private)
 .claude/
