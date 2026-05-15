@@ -2,7 +2,7 @@
 	"name": "spicy-tools",
 	"version": "0.1.0",
 	"description": "Frontmatter dropdowns with inheritance and folder-based Kanban boards for Obsidian",
-	"packageManager": "pnpm@10.33.4",
+	"packageManager": "pnpm@11.0.8",
 	"main": "main.js",
 	"scripts": {
 		"build:css": "node scripts/build-css.js",
