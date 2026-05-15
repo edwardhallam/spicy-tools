@@ -1,9 +1,12 @@
 name: CI
 on:
+  workflow_dispatch:
   push:
     branches: [main]
   pull_request:
     branches: [main]
+permissions:
+  contents: read
 jobs:
   ci:
     runs-on: ubuntu-latest
@@ -17,3 +20,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
       - run: pnpm run build
+      - name: Verify committed plugin bundle is current
+        run: |
+          if ! git diff --quiet -- main.js styles.css manifest.json versions.json; then
+            echo "pnpm run build changed committed plugin assets. Commit the regenerated bundle."
+            git diff --stat -- main.js styles.css manifest.json versions.json
+            exit 1
+          fi

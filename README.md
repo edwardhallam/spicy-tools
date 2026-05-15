@@ -123,6 +123,12 @@ pnpm test
 pnpm run build
 ```
 
+## Deployment
+
+BRAT and manual installs consume the committed plugin bundle on `main`: `main.js`, `styles.css`, `manifest.json`, and `versions.json`.
+
+Dependency PRs run CI, including `pnpm run build`, and CI fails if the generated bundle is stale. After a trusted push to `main`, the `Update Plugin Bundle` workflow rebuilds the bundle and opens or updates a generated-assets PR when the committed assets changed. That workflow requires the repository secret `SPICY_TOOLS_BUNDLE_BOT_TOKEN` so the generated PR can trigger CI and auto-merge.
+
 ## License
 
 [MIT](LICENSE)
