@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: spicy-tools-plugin-bundle
@@ -27,6 +27,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - run: pnpm test
+
       - run: pnpm run build
 
       - name: Check generated assets
@@ -40,45 +42,13 @@ jobs:
             git diff --stat -- main.js styles.css manifest.json versions.json
           fi
 
-      - name: Open bundle update PR
+      - name: Commit generated assets
         if: steps.bundle.outputs.changed == 'true'
-        env:
-          BOT_TOKEN: ${{ secrets.SPICY_TOOLS_BUNDLE_BOT_TOKEN }}
-          GH_TOKEN: ${{ secrets.SPICY_TOOLS_BUNDLE_BOT_TOKEN }}
-          BRANCH: automation/spicy-tools-plugin-bundle
         run: |
           set -euo pipefail
 
-          if [ -z "${BOT_TOKEN}" ]; then
-            echo "SPICY_TOOLS_BUNDLE_BOT_TOKEN is required so the generated-assets PR can trigger CI and auto-merge."
-            exit 1
-          fi
-
-          git config user.name "spicy-tools bundle bot"
-          git config user.email "spicy-tools-bundle-bot@users.noreply.github.com"
-          git remote set-url origin "https://x-access-token:${BOT_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-
-          git checkout -B "${BRANCH}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add main.js styles.css manifest.json versions.json
           git commit -m "build: update spicy-tools plugin bundle"
-          git push --force-with-lease origin "${BRANCH}"
-
-          if gh pr view "${BRANCH}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
-            gh pr edit "${BRANCH}" \
-              --repo "${GITHUB_REPOSITORY}" \
-              --title "build: update spicy-tools plugin bundle" \
-              --body "Regenerates committed Obsidian plugin assets after dependency changes on main."
-          else
-            gh pr create \
-              --repo "${GITHUB_REPOSITORY}" \
-              --base main \
-              --head "${BRANCH}" \
-              --title "build: update spicy-tools plugin bundle" \
-              --body "Regenerates committed Obsidian plugin assets after dependency changes on main."
-          fi
-
-          gh pr merge "${BRANCH}" \
-            --repo "${GITHUB_REPOSITORY}" \
-            --squash \
-            --auto \
-            --delete-branch
+          git push origin HEAD:main
