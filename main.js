@@ -182,10 +182,8 @@ function parseYamlBlock(yamlContent, blockIndex) {
     }
     const definitions = /* @__PURE__ */ new Map();
     for (const [property, value] of Object.entries(raw)) {
-      if (property.startsWith("#"))
-        continue;
-      if (property === "tables")
-        continue;
+      if (property.startsWith("#")) continue;
+      if (property === "tables") continue;
       if (!property.trim()) {
         console.warn(`Block ${blockIndex + 1}: Skipping property with empty name`);
         continue;
@@ -348,8 +346,7 @@ function parseYamlArray(lines, baseIndent, startIdx, endIdx) {
 }
 function parseInlineArray(content) {
   const inner = content.slice(1, -1).trim();
-  if (!inner)
-    return [];
+  if (!inner) return [];
   const items = [];
   let current = "";
   let inQuotes = false;
@@ -377,12 +374,9 @@ function parseScalar(value) {
   if (value.startsWith('"') && value.endsWith('"') || value.startsWith("'") && value.endsWith("'")) {
     return value.slice(1, -1);
   }
-  if (value === "true")
-    return true;
-  if (value === "false")
-    return false;
-  if (value === "null" || value === "~")
-    return null;
+  if (value === "true") return true;
+  if (value === "false") return false;
+  if (value === "null" || value === "~") return null;
   const num = Number(value);
   if (!isNaN(num) && value !== "") {
     return num;
@@ -450,8 +444,7 @@ function parseTableYamlBlock(yamlContent, blockIndex) {
     }
     const definitions = /* @__PURE__ */ new Map();
     for (const [column, value] of Object.entries(tablesSection)) {
-      if (column.startsWith("#"))
-        continue;
+      if (column.startsWith("#")) continue;
       if (!column.trim()) {
         console.warn(`Block ${blockIndex + 1}: Skipping table column with empty name`);
         continue;
@@ -880,8 +873,7 @@ var DropdownUI = class {
    * Render the trigger button content.
    */
   renderTriggerContent() {
-    if (!this.elements.trigger)
-      return;
+    if (!this.elements.trigger) return;
     const trigger = this.elements.trigger;
     trigger.empty();
     const values = this.normalizeToArray(this.state.value);
@@ -931,8 +923,7 @@ var DropdownUI = class {
    * Render the options list.
    */
   renderOptions() {
-    if (!this.elements.menu)
-      return;
+    if (!this.elements.menu) return;
     const existingOptions = this.elements.menu.querySelectorAll(".spicy-dropdown-option");
     existingOptions.forEach((el) => el.remove());
     const selectedValues = this.normalizeToArray(this.state.value);
@@ -941,10 +932,8 @@ var DropdownUI = class {
       const isSelected = selectedValues.includes(option);
       const isHighlighted = i === this.state.highlightedIndex;
       const classes = ["spicy-dropdown-option"];
-      if (isSelected)
-        classes.push("selected");
-      if (isHighlighted)
-        classes.push("highlighted");
+      if (isSelected) classes.push("selected");
+      if (isHighlighted) classes.push("highlighted");
       const optionEl = this.elements.menu.createDiv({
         cls: classes.join(" "),
         attr: {
@@ -968,8 +957,7 @@ var DropdownUI = class {
    * Attach event listeners using event delegation.
    */
   attachEventListeners() {
-    if (!this.elements.trigger || !this.elements.menu)
-      return;
+    if (!this.elements.trigger || !this.elements.menu) return;
     if (this.elements.wrapper) {
       this.elements.wrapper.addEventListener("mousedown", this.boundHandleMousedown);
     }
@@ -1035,8 +1023,7 @@ var DropdownUI = class {
    */
   handleDocumentClick(e) {
     var _a, _b;
-    if (!this.isOpen || !this.elements.wrapper)
-      return;
+    if (!this.isOpen || !this.elements.wrapper) return;
     const target = e.target;
     const isInsideWrapper = this.elements.wrapper.contains(target);
     const isInsideMenu = (_b = (_a = this.elements.menu) == null ? void 0 : _a.contains(target)) != null ? _b : false;
@@ -1113,8 +1100,7 @@ var DropdownUI = class {
    */
   open() {
     var _a, _b, _c;
-    if (this.isDestroyed || this.isOpen)
-      return;
+    if (this.isDestroyed || this.isOpen) return;
     this.isOpen = true;
     this.events.onOpen();
     this.positionMenu();
@@ -1132,8 +1118,7 @@ var DropdownUI = class {
    * Menu is rendered to document.body, so we need fixed positioning.
    */
   positionMenu() {
-    if (!this.elements.trigger || !this.elements.menu)
-      return;
+    if (!this.elements.trigger || !this.elements.menu) return;
     const triggerRect = this.elements.trigger.getBoundingClientRect();
     this.elements.menu.style.position = "fixed";
     this.elements.menu.style.top = `${triggerRect.bottom + 4}px`;
@@ -1146,8 +1131,7 @@ var DropdownUI = class {
    */
   close() {
     var _a, _b;
-    if (this.isDestroyed || !this.isOpen)
-      return;
+    if (this.isDestroyed || !this.isOpen) return;
     this.isOpen = false;
     (_a = this.elements.menu) == null ? void 0 : _a.addClass("hidden");
     (_b = this.elements.trigger) == null ? void 0 : _b.setAttribute("aria-expanded", "false");
@@ -1217,8 +1201,7 @@ var DropdownUI = class {
    * Update the highlight styling.
    */
   updateHighlight() {
-    if (!this.elements.menu)
-      return;
+    if (!this.elements.menu) return;
     const options = this.elements.menu.querySelectorAll(".spicy-dropdown-option");
     options.forEach((el, i) => {
       if (i === this.state.highlightedIndex) {
@@ -1274,8 +1257,7 @@ var DropdownUI = class {
    * Update the dropdown value externally.
    */
   setValue(newValue) {
-    if (this.isDestroyed)
-      return;
+    if (this.isDestroyed) return;
     this.state.value = newValue;
     this.renderTriggerContent();
     if (this.isOpen) {
@@ -1298,8 +1280,7 @@ var DropdownUI = class {
    * Clean up event listeners and DOM.
    */
   destroy() {
-    if (this.isDestroyed)
-      return;
+    if (this.isDestroyed) return;
     this.isDestroyed = true;
     document.removeEventListener("click", this.boundHandleDocumentClick, true);
     if (this.elements.wrapper) {
@@ -1330,7 +1311,7 @@ var DropdownUI = class {
 };
 
 // src/dropdowns/PropertyDropdownAdapter.ts
-var _PropertyDropdownAdapter = class {
+var _PropertyDropdownAdapter = class _PropertyDropdownAdapter {
   constructor(app, file, propertyName, definition) {
     this.ui = null;
     this.container = null;
@@ -1352,8 +1333,7 @@ var _PropertyDropdownAdapter = class {
    */
   mount(container) {
     var _a;
-    if (this.isDestroyed)
-      return;
+    if (this.isDestroyed) return;
     this.container = container;
     this.container.empty();
     const config = {
@@ -1447,8 +1427,7 @@ var _PropertyDropdownAdapter = class {
    * Obsidian's re-render from destroying the dropdown mid-interaction.
    */
   handleChange(newValue) {
-    if (this.isDestroyed)
-      return;
+    if (this.isDestroyed) return;
     if (this.definition.multi) {
       this.pendingValue = newValue;
       this.hasPendingValue = true;
@@ -1466,8 +1445,7 @@ var _PropertyDropdownAdapter = class {
    * Write value to frontmatter.
    */
   async writeFrontmatter(newValue) {
-    if (this.isDestroyed)
-      return;
+    if (this.isDestroyed) return;
     try {
       await this.app.fileManager.processFrontMatter(this.file, (fm) => {
         if (Array.isArray(newValue) && newValue.length === 0) {
@@ -1485,8 +1463,7 @@ var _PropertyDropdownAdapter = class {
    * Called when external changes are detected.
    */
   refresh() {
-    if (this.isDestroyed || !this.ui)
-      return;
+    if (this.isDestroyed || !this.ui) return;
     if (this.ui.isInteracting()) {
       this.pendingRefresh = true;
       return;
@@ -1504,8 +1481,7 @@ var _PropertyDropdownAdapter = class {
    * Clean up resources.
    */
   destroy() {
-    if (this.isDestroyed)
-      return;
+    if (this.isDestroyed) return;
     this.isDestroyed = true;
     if (this.hasPendingValue) {
       this.hasPendingValue = false;
@@ -1527,14 +1503,14 @@ var _PropertyDropdownAdapter = class {
     this.onInteractionChange = null;
   }
 };
+_PropertyDropdownAdapter.UPDATE_DEBOUNCE_MS = 50;
 var PropertyDropdownAdapter = _PropertyDropdownAdapter;
-PropertyDropdownAdapter.UPDATE_DEBOUNCE_MS = 50;
 
 // src/dropdowns/PropertyDropdownRegistry.ts
 function makeAdapterKey(filePath, propertyName) {
   return `${filePath}:${propertyName}`;
 }
-var _PropertyDropdownRegistry = class {
+var _PropertyDropdownRegistry = class _PropertyDropdownRegistry {
   constructor(app, dropdownManager) {
     // Adapters keyed by "filepath:propertyName"
     this.adapters = /* @__PURE__ */ new Map();
@@ -1669,8 +1645,7 @@ var _PropertyDropdownRegistry = class {
             }
           }
         }
-        if (shouldScan)
-          break;
+        if (shouldScan) break;
       }
       if (shouldScan) {
         this.debouncedScan();
@@ -1706,8 +1681,7 @@ var _PropertyDropdownRegistry = class {
    * Start observing a container element.
    */
   observeContainer(container) {
-    if (!this.observer)
-      return;
+    if (!this.observer) return;
     this.observedContainer = container;
     this.observer.observe(container, {
       childList: true,
@@ -1730,8 +1704,7 @@ var _PropertyDropdownRegistry = class {
    * Scan for property elements and create/update adapters.
    */
   scanProperties() {
-    if (!this.currentFile)
-      return;
+    if (!this.currentFile) return;
     const propertyElements = document.querySelectorAll(".metadata-property");
     const seenKeys = /* @__PURE__ */ new Set();
     propertyElements.forEach((propertyEl) => {
@@ -1749,12 +1722,10 @@ var _PropertyDropdownRegistry = class {
    */
   processPropertyElement(propertyEl, seenKeys) {
     var _a;
-    if (!this.currentFile)
-      return;
+    if (!this.currentFile) return;
     try {
       const propertyName = this.getPropertyName(propertyEl);
-      if (!propertyName)
-        return;
+      if (!propertyName) return;
       const definition = this.definitions.get(propertyName);
       if (!definition) {
         this.removeDropdownFromElement(propertyEl);
@@ -1763,8 +1734,7 @@ var _PropertyDropdownRegistry = class {
       const key = makeAdapterKey(this.currentFile.path, propertyName);
       seenKeys.add(key);
       const valueContainer = propertyEl.querySelector(".metadata-property-value");
-      if (!valueContainer)
-        return;
+      if (!valueContainer) return;
       if (this.adapters.has(key)) {
         const existingDropdown = valueContainer.querySelector(".spicy-dropdown");
         if (existingDropdown) {
@@ -1799,11 +1769,9 @@ var _PropertyDropdownRegistry = class {
    * native rendering finish first (avoids race condition).
    */
   createAdapter(key, propertyEl, valueContainer, definition) {
-    if (!this.currentFile)
-      return;
+    if (!this.currentFile) return;
     const doMount = () => {
-      if (!this.currentFile || this.adapters.has(key))
-        return;
+      if (!this.currentFile || this.adapters.has(key)) return;
       const adapter = new PropertyDropdownAdapter(
         this.app,
         this.currentFile,
@@ -1844,8 +1812,8 @@ var _PropertyDropdownRegistry = class {
     return this.interactionLockCount > 0;
   }
 };
+_PropertyDropdownRegistry.SCAN_DEBOUNCE_MS = 50;
 var PropertyDropdownRegistry = _PropertyDropdownRegistry;
-PropertyDropdownRegistry.SCAN_DEBOUNCE_MS = 50;
 
 // src/kanban/BoardParser.ts
 var YamlSyntaxError2 = class extends Error {
@@ -2029,7 +1997,8 @@ function parseSimpleYaml2(content) {
         saveCurrentKey(result, currentKey, currentObject, currentArray, nestedObjectKey, nestedObject);
       }
       const colonIndex = trimmed.indexOf(":");
-      currentKey = trimmed.substring(0, colonIndex).trim();
+      const parsedKey = trimmed.substring(0, colonIndex).trim();
+      currentKey = parsedKey;
       const afterColon = trimmed.substring(colonIndex + 1).trim();
       currentObject = null;
       currentArray = null;
@@ -2037,10 +2006,10 @@ function parseSimpleYaml2(content) {
       nestedObject = null;
       if (afterColon) {
         if (afterColon.startsWith("[") && afterColon.endsWith("]")) {
-          result[currentKey] = parseInlineArray2(afterColon);
+          result[parsedKey] = parseInlineArray2(afterColon);
           currentKey = null;
         } else {
-          result[currentKey] = parseScalar2(afterColon);
+          result[parsedKey] = parseScalar2(afterColon);
           currentKey = null;
         }
       }
@@ -2117,8 +2086,7 @@ function saveCurrentKey(result, key, obj, arr, nestedKey, nestedObj) {
 }
 function parseInlineArray2(content) {
   const inner = content.slice(1, -1).trim();
-  if (!inner)
-    return [];
+  if (!inner) return [];
   const items = [];
   let current = "";
   let inQuotes = false;
@@ -2146,12 +2114,9 @@ function parseScalar2(value) {
   if (value.startsWith('"') && value.endsWith('"') || value.startsWith("'") && value.endsWith("'")) {
     return value.slice(1, -1);
   }
-  if (value === "true")
-    return true;
-  if (value === "false")
-    return false;
-  if (value === "null" || value === "~")
-    return null;
+  if (value === "true") return true;
+  if (value === "false") return false;
+  if (value === "null" || value === "~") return null;
   const num = Number(value);
   if (!isNaN(num) && value !== "") {
     return num;
@@ -2299,11 +2264,9 @@ var CardOrderManager = class {
    */
   reorderCard(column, filename, newIndex) {
     const order = this.cardOrder[column];
-    if (!order)
-      return;
+    if (!order) return;
     const currentIndex = order.indexOf(filename);
-    if (currentIndex === -1)
-      return;
+    if (currentIndex === -1) return;
     order.splice(currentIndex, 1);
     const adjustedIndex = Math.min(Math.max(0, newIndex), order.length);
     order.splice(adjustedIndex, 0, filename);
@@ -2317,8 +2280,7 @@ var CardOrderManager = class {
    */
   removeCardFromColumn(filename, column) {
     const order = this.cardOrder[column];
-    if (!order)
-      return;
+    if (!order) return;
     const index = order.indexOf(filename);
     if (index !== -1) {
       order.splice(index, 1);
@@ -2417,8 +2379,7 @@ var CardOrderManager = class {
    * Persist the current order to the _board.md file.
    */
   async save() {
-    if (!this.isDirty)
-      return;
+    if (!this.isDirty) return;
     try {
       const configFile = this.app.vault.getAbstractFileByPath(this.boardPath);
       if (!configFile) {
@@ -2517,8 +2478,7 @@ var BoardManager = class {
    * Get the current board state.
    */
   async getState() {
-    if (!this.config)
-      return null;
+    if (!this.config) return null;
     return this.buildBoardState();
   }
   /**
@@ -2536,8 +2496,7 @@ var BoardManager = class {
    * @param index - Position in target column (default: end)
    */
   async moveCardToColumn(filename, newColumn, index) {
-    if (!this.config)
-      return;
+    if (!this.config) return;
     const filePath = `${this.folderPath}/${filename}`;
     const file = this.app.vault.getAbstractFileByPath(filePath);
     if (!file) {
@@ -2569,8 +2528,7 @@ var BoardManager = class {
    * @param newIndex - New position in the column
    */
   async reorderCard(column, filename, newIndex) {
-    if (!this.cardOrderManager)
-      return;
+    if (!this.cardOrderManager) return;
     this.cardOrderManager.reorderCard(column, filename, newIndex);
     this.emit({
       type: "card-reordered",
@@ -2651,8 +2609,7 @@ var BoardManager = class {
    * @returns The created file, or null on error
    */
   async createCard(column, title) {
-    if (!this.config)
-      return null;
+    if (!this.config) return null;
     const filename = this.sanitizeFilename(title) + ".md";
     const filePath = `${this.folderPath}/${filename}`;
     if (this.app.vault.getAbstractFileByPath(filePath)) {
@@ -2735,10 +2692,8 @@ ${afterEnd}`;
     }
     for (const file of files) {
       const card = await this.buildCard(file);
-      if (!card)
-        continue;
-      if (card.archived)
-        continue;
+      if (!card) continue;
+      if (card.archived) continue;
       if (card.columnValue && columnMap.has(card.columnValue)) {
         columnMap.get(card.columnValue).push(card);
       } else {
@@ -2797,10 +2752,8 @@ ${afterEnd}`;
         });
       }
       swimlanes.sort((a, b) => {
-        if (a.name === "Uncategorized")
-          return 1;
-        if (b.name === "Uncategorized")
-          return -1;
+        if (a.name === "Uncategorized") return 1;
+        if (b.name === "Uncategorized") return -1;
         return a.name.localeCompare(b.name);
       });
       state.swimlanes = swimlanes;
@@ -2812,8 +2765,7 @@ ${afterEnd}`;
    */
   async buildCard(file) {
     var _a, _b, _c, _d;
-    if (!this.config)
-      return null;
+    if (!this.config) return null;
     const cache = this.app.metadataCache.getFileCache(file);
     const frontmatter = (_a = cache == null ? void 0 : cache.frontmatter) != null ? _a : {};
     const title = this.config.cardTitle ? (_b = frontmatter[this.config.cardTitle]) != null ? _b : file.basename : file.basename;
@@ -2846,8 +2798,7 @@ ${afterEnd}`;
    */
   async getCardColumn(file) {
     var _a, _b;
-    if (!this.config)
-      return null;
+    if (!this.config) return null;
     const cache = this.app.metadataCache.getFileCache(file);
     return (_b = (_a = cache == null ? void 0 : cache.frontmatter) == null ? void 0 : _a[this.config.columnProperty]) != null ? _b : null;
   }
@@ -3103,8 +3054,7 @@ var CardComponent = class {
    * Attach event listeners to the card element.
    */
   attachEventListeners() {
-    if (!this.element)
-      return;
+    if (!this.element) return;
     const { card, onDragStart, onDragEnd, onClick, onArchive, app } = this.config;
     this.element.addEventListener("click", (e) => {
       if (e.target.closest(".spicy-kanban-card-actions")) {
@@ -3121,8 +3071,7 @@ var CardComponent = class {
     });
     this.element.addEventListener("dragstart", (e) => {
       var _a;
-      if (!e.dataTransfer)
-        return;
+      if (!e.dataTransfer) return;
       e.dataTransfer.effectAllowed = "move";
       e.dataTransfer.setData("text/plain", card.filename);
       (_a = this.element) == null ? void 0 : _a.addClass("dragging");
@@ -3177,8 +3126,7 @@ var CardComponent = class {
    * Create a visual clone of the card for drag feedback.
    */
   createTouchClone(x, y) {
-    if (!this.element)
-      return;
+    if (!this.element) return;
     this.touchClone = this.element.cloneNode(true);
     this.touchClone.addClass("spicy-kanban-card-clone");
     this.touchClone.style.position = "fixed";
@@ -3195,8 +3143,7 @@ var CardComponent = class {
    * Update the clone position during drag.
    */
   updateTouchClone(x, y) {
-    if (!this.touchClone || !this.element)
-      return;
+    if (!this.touchClone || !this.element) return;
     const offsetX = this.element.offsetWidth / 2;
     const offsetY = 20;
     this.touchClone.style.left = `${x - offsetX}px`;
@@ -3209,8 +3156,7 @@ var CardComponent = class {
     document.querySelectorAll(".spicy-kanban-column.touch-drop-target").forEach((el) => {
       el.removeClass("touch-drop-target");
     });
-    if (!target)
-      return;
+    if (!target) return;
     const column = target.closest(".spicy-kanban-column");
     if (column) {
       column.addClass("touch-drop-target");
@@ -3221,17 +3167,13 @@ var CardComponent = class {
    */
   handleTouchDrop(target, x, y) {
     var _a;
-    if (!target)
-      return;
+    if (!target) return;
     const column = target.closest(".spicy-kanban-column");
-    if (!column)
-      return;
+    if (!column) return;
     const columnId = column.getAttribute("data-column-id");
-    if (!columnId)
-      return;
+    if (!columnId) return;
     const cardsContainer = column.querySelector(".spicy-kanban-column-cards");
-    if (!cardsContainer)
-      return;
+    if (!cardsContainer) return;
     const cards = Array.from(cardsContainer.querySelectorAll(".spicy-kanban-card"));
     let insertBefore = null;
     for (const cardEl of cards) {
@@ -3326,8 +3268,7 @@ var ColumnComponent = class {
    * Render all cards in the column.
    */
   renderCards() {
-    if (!this.cardsContainer)
-      return;
+    if (!this.cardsContainer) return;
     const { column, boardConfig, app, onCardClick, onCardArchive } = this.config;
     this.cardsContainer.empty();
     this.cardComponents.clear();
@@ -3349,8 +3290,7 @@ var ColumnComponent = class {
    * Set up the column as a drop zone.
    */
   setupDropZone() {
-    if (!this.cardsContainer)
-      return;
+    if (!this.cardsContainer) return;
     this.cardsContainer.addEventListener("dragover", (e) => {
       e.preventDefault();
       if (e.dataTransfer) {
@@ -3369,8 +3309,7 @@ var ColumnComponent = class {
       e.preventDefault();
       this.hideDropIndicator();
       const filename = (_a = e.dataTransfer) == null ? void 0 : _a.getData("text/plain");
-      if (!filename)
-        return;
+      if (!filename) return;
       const dropIndex = this.calculateDropIndex(e);
       this.handleDrop(filename, dropIndex);
     });
@@ -3380,8 +3319,7 @@ var ColumnComponent = class {
    * Listens for custom events dispatched by CardComponent during touch drag.
    */
   setupTouchDropZone() {
-    if (!this.element)
-      return;
+    if (!this.element) return;
     this.boundTouchDragMove = (e) => this.handleTouchDragMove(e);
     this.boundTouchDragEnd = (e) => this.handleTouchDragEnd(e);
     document.addEventListener("spicy-touch-drag-move", this.boundTouchDragMove);
@@ -3391,8 +3329,7 @@ var ColumnComponent = class {
    * Handle touch drag move - check if touch point is over this column.
    */
   handleTouchDragMove(e) {
-    if (!this.element || !this.cardsContainer)
-      return;
+    if (!this.element || !this.cardsContainer) return;
     const { clientX, clientY } = e.detail;
     const rect = this.cardsContainer.getBoundingClientRect();
     const isOver = clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
@@ -3412,15 +3349,13 @@ var ColumnComponent = class {
    * Handle touch drag end - process drop if over this column.
    */
   handleTouchDragEnd(e) {
-    if (!this.element || !this.cardsContainer)
-      return;
+    if (!this.element || !this.cardsContainer) return;
     const wasOver = this.isTouchDragOver;
     const { card, clientX, clientY } = e.detail;
     this.isTouchDragOver = false;
     this.element.removeClass("touch-drag-over");
     this.hideDropIndicator();
-    if (!wasOver)
-      return;
+    if (!wasOver) return;
     const dropIndex = this.calculateTouchDropIndex(clientY);
     this.handleDrop(card.filename, dropIndex);
   }
@@ -3428,8 +3363,7 @@ var ColumnComponent = class {
    * Show drop indicator at touch position.
    */
   showTouchDropIndicator(clientX, clientY) {
-    if (!this.cardsContainer)
-      return;
+    if (!this.cardsContainer) return;
     if (!this.dropIndicator) {
       this.dropIndicator = document.createElement("div");
       this.dropIndicator.className = "spicy-kanban-drop-indicator";
@@ -3448,8 +3382,7 @@ var ColumnComponent = class {
    * Calculate drop index based on touch Y position.
    */
   calculateTouchDropIndex(clientY) {
-    if (!this.cardsContainer)
-      return 0;
+    if (!this.cardsContainer) return 0;
     const cards = Array.from(
       this.cardsContainer.querySelectorAll(".spicy-kanban-card:not(.touch-dragging)")
     );
@@ -3467,8 +3400,7 @@ var ColumnComponent = class {
    * Check if a point is over this column (public method for external use).
    */
   isPointOver(clientX, clientY) {
-    if (!this.cardsContainer)
-      return false;
+    if (!this.cardsContainer) return false;
     const rect = this.cardsContainer.getBoundingClientRect();
     return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
   }
@@ -3520,8 +3452,7 @@ var ColumnComponent = class {
    * Show drop indicator at the appropriate position.
    */
   showDropIndicator(e) {
-    if (!this.cardsContainer)
-      return;
+    if (!this.cardsContainer) return;
     if (!this.dropIndicator) {
       this.dropIndicator = document.createElement("div");
       this.dropIndicator.className = "spicy-kanban-drop-indicator";
@@ -3548,8 +3479,7 @@ var ColumnComponent = class {
    * Calculate the drop index based on mouse position.
    */
   calculateDropIndex(e) {
-    if (!this.cardsContainer)
-      return 0;
+    if (!this.cardsContainer) return 0;
     const cards = Array.from(this.cardsContainer.querySelectorAll(".spicy-kanban-card:not(.dragging)"));
     for (let i = 0; i < cards.length; i++) {
       const card = cards[i];
@@ -3632,8 +3562,7 @@ var SwimlaneComponent = class {
    * Render the swimlane header with name, count, and collapse toggle.
    */
   renderHeader() {
-    if (!this.element)
-      return;
+    if (!this.element) return;
     const { swimlane, boardConfig } = this.config;
     this.headerEl = this.element.createDiv({ cls: "spicy-kanban-swimlane-header" });
     const collapseToggle = this.headerEl.createDiv({ cls: "spicy-kanban-swimlane-toggle" });
@@ -3653,8 +3582,7 @@ var SwimlaneComponent = class {
    * Render the swimlane content (columns).
    */
   renderContent() {
-    if (!this.element)
-      return;
+    if (!this.element) return;
     const { isCollapsed } = this.config;
     this.contentEl = this.element.createDiv({ cls: "spicy-kanban-swimlane-content" });
     if (isCollapsed) {
@@ -3666,8 +3594,7 @@ var SwimlaneComponent = class {
    * Render all columns within the swimlane.
    */
   renderColumns() {
-    if (!this.contentEl)
-      return;
+    if (!this.contentEl) return;
     const { swimlane, boardConfig, app, onCardMove, onCardReorder, onCardClick, onCardArchive, onAddCard } = this.config;
     const columnsContainer = this.contentEl.createDiv({ cls: "spicy-kanban-columns" });
     for (const column of swimlane.columns) {
@@ -3858,8 +3785,7 @@ var BoardView = class extends import_obsidian2.ItemView {
    * Refresh the board state.
    */
   async refresh() {
-    if (!this.boardManager)
-      return;
+    if (!this.boardManager) return;
     const state = await this.boardManager.getState();
     if (state) {
       this.boardState = state;
@@ -3892,8 +3818,7 @@ var BoardView = class extends import_obsidian2.ItemView {
    * Render the full board.
    */
   render() {
-    if (!this.boardContentEl || !this.boardState)
-      return;
+    if (!this.boardContentEl || !this.boardState) return;
     this.boardContentEl.empty();
     this.destroyColumns();
     this.destroySwimlanes();
@@ -3942,8 +3867,7 @@ var BoardView = class extends import_obsidian2.ItemView {
    * Render columns in flat layout (no swimlanes).
    */
   renderColumns(columns) {
-    if (!this.boardContentEl)
-      return;
+    if (!this.boardContentEl) return;
     const columnsContainer = this.boardContentEl.createDiv({ cls: "spicy-kanban-columns" });
     for (const column of columns) {
       this.renderColumn(columnsContainer, column);
@@ -3953,8 +3877,7 @@ var BoardView = class extends import_obsidian2.ItemView {
    * Render swimlanes layout.
    */
   renderSwimlanes(swimlanes, columns, config) {
-    if (!this.boardContentEl || !this.boardState)
-      return;
+    if (!this.boardContentEl || !this.boardState) return;
     const swimlanesContainer = this.boardContentEl.createDiv({
       cls: "spicy-kanban-swimlanes"
     });
@@ -4000,8 +3923,7 @@ var BoardView = class extends import_obsidian2.ItemView {
    * Render a single column.
    */
   renderColumn(container, column) {
-    if (!this.boardState)
-      return;
+    if (!this.boardState) return;
     const columnComponent = new ColumnComponent({
       column,
       boardConfig: this.boardState.config,
@@ -4035,8 +3957,7 @@ var BoardView = class extends import_obsidian2.ItemView {
    * Load persisted swimlane collapse state from localStorage.
    */
   loadSwimlaneCollapseState() {
-    if (!this.folderPath)
-      return;
+    if (!this.folderPath) return;
     try {
       const key = `spicy-kanban-collapsed-swimlanes:${this.folderPath}`;
       const stored = localStorage.getItem(key);
@@ -4055,8 +3976,7 @@ var BoardView = class extends import_obsidian2.ItemView {
    * Save swimlane collapse state to localStorage.
    */
   saveSwimlaneCollapseState() {
-    if (!this.folderPath)
-      return;
+    if (!this.folderPath) return;
     try {
       const key = `spicy-kanban-collapsed-swimlanes:${this.folderPath}`;
       const collapsed = Array.from(this.collapsedSwimlanes);
@@ -4069,16 +3989,14 @@ var BoardView = class extends import_obsidian2.ItemView {
    * Handle card move between columns.
    */
   async handleCardMove(card, toColumn, index) {
-    if (!this.boardManager)
-      return;
+    if (!this.boardManager) return;
     await this.boardManager.moveCardToColumn(card.filename + ".md", toColumn, index);
   }
   /**
    * Handle card reorder within a column.
    */
   async handleCardReorder(column, filename, newIndex) {
-    if (!this.boardManager)
-      return;
+    if (!this.boardManager) return;
     await this.boardManager.reorderCard(column, filename, newIndex);
   }
   /**
@@ -4094,8 +4012,7 @@ var BoardView = class extends import_obsidian2.ItemView {
    * Handle card archive.
    */
   async handleCardArchive(card) {
-    if (!this.boardManager)
-      return;
+    if (!this.boardManager) return;
     await this.boardManager.archiveCard(card.filename + ".md");
     new import_obsidian2.Notice(`Archived: ${card.title}`);
   }
@@ -4103,11 +4020,9 @@ var BoardView = class extends import_obsidian2.ItemView {
    * Handle add new card.
    */
   async handleAddCard(column) {
-    if (!this.boardManager)
-      return;
+    if (!this.boardManager) return;
     const title = await this.promptForTitle();
-    if (!title)
-      return;
+    if (!title) return;
     const file = await this.boardManager.createCard(column, title);
     if (file) {
       await this.app.workspace.getLeaf(false).openFile(file);
@@ -4314,8 +4229,7 @@ var BoardEmbed = class {
    * Refresh the board state.
    */
   async refresh() {
-    if (!this.boardManager)
-      return;
+    if (!this.boardManager) return;
     const state = await this.boardManager.getState();
     if (state) {
       this.boardState = state;
@@ -4334,8 +4248,7 @@ var BoardEmbed = class {
    * Render the board content.
    */
   renderBoard() {
-    if (!this.boardState)
-      return;
+    if (!this.boardState) return;
     this.containerEl.empty();
     this.destroyColumns();
     const { columns, uncategorized, config } = this.boardState;
@@ -4365,8 +4278,7 @@ var BoardEmbed = class {
    * Render a single column.
    */
   renderColumn(container, column) {
-    if (!this.boardState)
-      return;
+    if (!this.boardState) return;
     const columnComponent = new ColumnComponent({
       column,
       boardConfig: this.boardState.config,
@@ -4428,16 +4340,14 @@ var BoardEmbed = class {
    * Handle card move between columns.
    */
   async handleCardMove(card, toColumn) {
-    if (!this.boardManager)
-      return;
+    if (!this.boardManager) return;
     await this.boardManager.moveCardToColumn(card.filename + ".md", toColumn);
   }
   /**
    * Handle card reorder within a column.
    */
   async handleCardReorder(column, filename, newIndex) {
-    if (!this.boardManager)
-      return;
+    if (!this.boardManager) return;
     await this.boardManager.reorderCard(column, filename, newIndex);
   }
   /**
@@ -4453,8 +4363,7 @@ var BoardEmbed = class {
    * Handle card archive.
    */
   async handleCardArchive(card) {
-    if (!this.boardManager)
-      return;
+    if (!this.boardManager) return;
     await this.boardManager.archiveCard(card.filename + ".md");
     new import_obsidian3.Notice(`Archived: ${card.title}`);
   }
@@ -4462,11 +4371,9 @@ var BoardEmbed = class {
    * Handle add new card.
    */
   async handleAddCard(column) {
-    if (!this.boardManager)
-      return;
+    if (!this.boardManager) return;
     const title = await this.promptForTitle();
-    if (!title)
-      return;
+    if (!title) return;
     const file = await this.boardManager.createCard(column, title);
     if (file) {
       await this.app.workspace.getLeaf(false).openFile(file);
@@ -4885,7 +4792,7 @@ function validateCellUpdate(tables, update) {
 }
 
 // src/tables/TableDropdownAdapter.ts
-var _TableDropdownAdapter = class {
+var _TableDropdownAdapter = class _TableDropdownAdapter {
   constructor(app, file, context, definition) {
     this.ui = null;
     this.container = null;
@@ -4907,8 +4814,7 @@ var _TableDropdownAdapter = class {
    */
   mount(container) {
     var _a;
-    if (this.isDestroyed)
-      return;
+    if (this.isDestroyed) return;
     this.container = container;
     this.container.empty();
     const config = {
@@ -4997,8 +4903,7 @@ var _TableDropdownAdapter = class {
    * For multi-select, defers write until dropdown closes.
    */
   handleChange(newValue) {
-    if (this.isDestroyed)
-      return;
+    if (this.isDestroyed) return;
     if (this.definition.multi) {
       this.pendingValue = newValue;
       this.hasPendingValue = true;
@@ -5016,8 +4921,7 @@ var _TableDropdownAdapter = class {
    * Write value to the markdown table cell.
    */
   async writeCell(newValue) {
-    if (this.isDestroyed)
-      return;
+    if (this.isDestroyed) return;
     try {
       const formattedValue = formatCellValue(newValue);
       const result = await updateTableCell(
@@ -5041,8 +4945,7 @@ var _TableDropdownAdapter = class {
    * Called when external changes are detected.
    */
   refresh() {
-    if (this.isDestroyed || !this.ui)
-      return;
+    if (this.isDestroyed || !this.ui) return;
     if (this.ui.isInteracting()) {
       this.pendingRefresh = true;
       return;
@@ -5061,8 +4964,7 @@ var _TableDropdownAdapter = class {
    * Clean up resources.
    */
   destroy() {
-    if (this.isDestroyed)
-      return;
+    if (this.isDestroyed) return;
     this.isDestroyed = true;
     if (this.hasPendingValue) {
       this.hasPendingValue = false;
@@ -5085,8 +4987,8 @@ var _TableDropdownAdapter = class {
     this.onInteractionChange = null;
   }
 };
+_TableDropdownAdapter.UPDATE_DEBOUNCE_MS = 50;
 var TableDropdownAdapter = _TableDropdownAdapter;
-TableDropdownAdapter.UPDATE_DEBOUNCE_MS = 50;
 
 // src/tables/ReadingViewTableDropdowns.ts
 var import_obsidian4 = require("obsidian");
@@ -5203,8 +5105,7 @@ function processTable(plugin, tableEl, tableIndex, sourcePath, file, definitions
     cells.forEach((cellEl, cellIndex) => {
       var _a;
       const definition = columnDefinitions.get(cellIndex);
-      if (!definition)
-        return;
+      if (!definition) return;
       const key = makeAdapterKey2(sourcePath, tableIndex, rowIndex, cellIndex);
       const existingAdapter = adapterRegistry.get(key);
       if (existingAdapter) {
@@ -5257,8 +5158,7 @@ function getTableHeaders(tableEl) {
       var _a;
       headers.push(((_a = cell.textContent) == null ? void 0 : _a.trim()) || "");
     });
-    if (headers.length > 0)
-      return headers;
+    if (headers.length > 0) return headers;
   }
   const firstRow = tableEl.querySelector("tr");
   if (firstRow) {
@@ -5305,8 +5205,7 @@ var TableDropdownWidget = class {
    */
   render() {
     var _a;
-    if (this.isDestroyed)
-      return;
+    if (this.isDestroyed) return;
     const value = this.parseValue(this.config.currentValue);
     const dropdownConfig = {
       options: this.config.options,
@@ -5330,8 +5229,7 @@ var TableDropdownWidget = class {
    * Clean up the widget and release resources.
    */
   destroy() {
-    if (this.isDestroyed)
-      return;
+    if (this.isDestroyed) return;
     this.isDestroyed = true;
     if (this.dropdownUI) {
       this.dropdownUI.destroy();
@@ -5342,16 +5240,14 @@ var TableDropdownWidget = class {
    * Get the current value as a string.
    */
   getValue() {
-    if (!this.dropdownUI)
-      return this.config.currentValue;
+    if (!this.dropdownUI) return this.config.currentValue;
     return this.serializeValue(this.dropdownUI.getValue());
   }
   /**
    * Set the current value from a string.
    */
   setValue(value) {
-    if (!this.dropdownUI || this.isDestroyed)
-      return;
+    if (!this.dropdownUI || this.isDestroyed) return;
     const parsedValue = this.parseValue(value);
     this.dropdownUI.setValue(parsedValue);
   }
@@ -5474,11 +5370,9 @@ function createLivePreviewTablePlugin(getDefinitions, getEditorView) {
         this.clearWidgets();
         tables.forEach((tableEl, tableIndex) => {
           const parsed = parsedTables[tableIndex];
-          if (!parsed)
-            return;
+          if (!parsed) return;
           const headerRow = tableEl.querySelector("thead tr, tr:first-child");
-          if (!headerRow)
-            return;
+          if (!headerRow) return;
           const headers = Array.from(headerRow.querySelectorAll("th, td")).map(
             (cell) => {
               var _a;
@@ -5492,8 +5386,7 @@ function createLivePreviewTablePlugin(getDefinitions, getEditorView) {
               columnDefinitions.set(colIndex, { name: header, def });
             }
           });
-          if (columnDefinitions.size === 0)
-            return;
+          if (columnDefinitions.size === 0) return;
           const bodyRows = tableEl.querySelectorAll("tbody tr, tr:not(:first-child)");
           bodyRows.forEach((row, rowIndex) => {
             if (rowIndex === 0 && parsed.cells.length > 0) {
@@ -5501,14 +5394,11 @@ function createLivePreviewTablePlugin(getDefinitions, getEditorView) {
             const cells = row.querySelectorAll("td");
             cells.forEach((cell, colIndex) => {
               const colInfo = columnDefinitions.get(colIndex);
-              if (!colInfo)
-                return;
+              if (!colInfo) return;
               const parsedRow = parsed.cells[rowIndex];
-              if (!parsedRow)
-                return;
+              if (!parsedRow) return;
               const parsedCell = parsedRow[colIndex];
-              if (!parsedCell)
-                return;
+              if (!parsedCell) return;
               this.mountDropdown(
                 cell,
                 colInfo.name,
@@ -5680,8 +5570,7 @@ var TableDropdownCoordinator = class {
    * - Live Preview: CodeMirror 6 ViewPlugin
    */
   initialize() {
-    if (this.initialized)
-      return;
+    if (this.initialized) return;
     registerReadingViewTableDropdowns(this.plugin, this.dropdownManager);
     this.livePreviewManager = registerLivePreviewTableDropdowns(
       this.plugin,
@@ -5844,8 +5733,7 @@ var SpicyToolsPlugin = class extends import_obsidian5.Plugin {
       checkCallback: (checking) => {
         var _a;
         const activeFile = this.app.workspace.getActiveFile();
-        if (!activeFile)
-          return false;
+        if (!activeFile) return false;
         const folderPath = ((_a = activeFile.parent) == null ? void 0 : _a.path) || "";
         const configPath = folderPath ? `${folderPath}/${BOARD_CONFIG_FILENAME}` : BOARD_CONFIG_FILENAME;
         const hasBoard = !!this.app.vault.getAbstractFileByPath(configPath);
@@ -5871,10 +5759,8 @@ var SpicyToolsPlugin = class extends import_obsidian5.Plugin {
       name: "Toggle Board/Markdown View",
       checkCallback: (checking) => {
         const activeFile = this.app.workspace.getActiveFile();
-        if (!activeFile || activeFile.name !== BOARD_CONFIG_FILENAME)
-          return false;
-        if (checking)
-          return true;
+        if (!activeFile || activeFile.name !== BOARD_CONFIG_FILENAME) return false;
+        if (checking) return true;
         this.toggleBoardMarkdownView(activeFile);
         return true;
       }
@@ -5953,8 +5839,7 @@ var SpicyToolsPlugin = class extends import_obsidian5.Plugin {
         return leaf.view.getFolderPath() === (((_a2 = file.parent) == null ? void 0 : _a2.path) || "");
       }
     );
-    if (!activeLeaf)
-      return;
+    if (!activeLeaf) return;
     const currentView = activeLeaf.view;
     const filePath = file.path;
     if (currentView instanceof BoardView) {
@@ -5988,8 +5873,7 @@ var SpicyToolsPlugin = class extends import_obsidian5.Plugin {
    * @param leaf - The specific leaf to use (avoids race conditions)
    */
   async openBoardInLeaf(folderPath, leaf) {
-    if (!this.boardManagerFactory)
-      return;
+    if (!this.boardManagerFactory) return;
     const manager = await this.boardManagerFactory.getManager(folderPath);
     if (!manager) {
       new import_obsidian5.Notice(`No board found in ${folderPath || "root"}`);

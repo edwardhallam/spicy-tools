@@ -294,7 +294,8 @@ function parseSimpleYaml(content: string): Record<string, unknown> | null {
 			}
 
 			const colonIndex = trimmed.indexOf(':');
-			currentKey = trimmed.substring(0, colonIndex).trim();
+			const parsedKey = trimmed.substring(0, colonIndex).trim();
+			currentKey = parsedKey;
 			const afterColon = trimmed.substring(colonIndex + 1).trim();
 
 			currentObject = null;
@@ -304,10 +305,10 @@ function parseSimpleYaml(content: string): Record<string, unknown> | null {
 
 			if (afterColon) {
 				if (afterColon.startsWith('[') && afterColon.endsWith(']')) {
-					result[currentKey] = parseInlineArray(afterColon);
+					result[parsedKey] = parseInlineArray(afterColon);
 					currentKey = null;
 				} else {
-					result[currentKey] = parseScalar(afterColon);
+					result[parsedKey] = parseScalar(afterColon);
 					currentKey = null;
 				}
 			}

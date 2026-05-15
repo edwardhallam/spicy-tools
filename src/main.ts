@@ -5,7 +5,7 @@ import { BoardManagerFactory, BoardView, KANBAN_VIEW_TYPE, BOARD_CONFIG_FILENAME
 import { TableDropdownCoordinator } from './tables';
 
 export default class SpicyToolsPlugin extends Plugin {
-	settings: SpicyToolsSettings;
+	settings!: SpicyToolsSettings;
 	dropdownManager: DropdownManager | null = null;
 	propertyRegistry: PropertyDropdownRegistry | null = null;
 	tableCoordinator: TableDropdownCoordinator | null = null;

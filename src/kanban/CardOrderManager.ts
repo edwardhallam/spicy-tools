@@ -17,7 +17,7 @@ export class CardOrderManager {
 	private boardPath: string;
 	private cardOrder: Record<string, string[]>;
 	private isDirty: boolean;
-	private saveTimeout: NodeJS.Timeout | null;
+	private saveTimeout: ReturnType<typeof setTimeout> | null;
 
 	constructor(app: App, boardPath: string, initialOrder?: Record<string, string[]>) {
 		this.app = app;
