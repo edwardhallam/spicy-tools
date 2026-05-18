@@ -10,10 +10,6 @@ tests/ui/*.png
 # Playwright MCP screenshots (may contain PII from vault)
 .playwright-mcp/
 
-# Claude Code configuration (private)
-.claude/
-CLAUDE.md
-
 # OS files
 .DS_Store
 Thumbs.db

@@ -5,9 +5,9 @@
  * Tests cover Reading View, Live Preview, view switching, and stress scenarios.
  *
  * IMPORTANT: These tests require:
- * 1. SSH tunnel active: ssh -fNL 9222:localhost:9222 macmini
- * 2. Obsidian running on Mac Mini with CDP enabled
- * 3. A test file with table dropdowns open in the nexus vault
+ * 1. CDP available at localhost:9222
+ * 2. Obsidian running with --remote-debugging-port=9222
+ * 3. A test file with table dropdowns open in the test vault
  *
  * Run with: npx playwright test --config tests/ui/playwright.config.ts
  */

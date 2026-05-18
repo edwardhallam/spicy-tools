@@ -84,8 +84,7 @@ async function main() {
 	const cdpOk = await checkCDP();
 	if (!cdpOk) {
 		console.error('CDP is not responding.');
-		console.error('Please ensure Obsidian is running on Mac Mini with:');
-		console.error('  ssh macmini \'open "obsidian://open?vault=nexus"\'');
+		console.error('Please ensure Obsidian is running with --remote-debugging-port=9222.');
 		process.exit(1);
 	}
 	console.log('CDP connection verified.\n');

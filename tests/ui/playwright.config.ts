@@ -1,8 +1,7 @@
 /**
  * Playwright configuration for Obsidian CDP UI testing.
  *
- * Connects to Obsidian running on Mac Mini via SSH tunnel at localhost:9222.
- * See CLAUDE.md for tunnel setup instructions.
+ * Connects to an Obsidian instance exposed through CDP at localhost:9222.
  *
  * Run tests with: npx playwright test --config tests/ui/playwright.config.ts
  */
@@ -38,9 +37,7 @@ export default defineConfig({
 
 	// Shared settings for all tests
 	use: {
-		// CDP connection to Obsidian via SSH tunnel
-		// The SSH tunnel forwards localhost:9222 to Mac Mini's localhost:9222
-		// where Obsidian is running with --remote-debugging-port=9222
+		// CDP connection to Obsidian running with --remote-debugging-port=9222.
 		connectOptions: {
 			wsEndpoint: '', // Will be set dynamically via CDP
 		},

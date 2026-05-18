@@ -115,9 +115,9 @@ category:
    ```
    Should return at least one "page" target.
 
-5. **Verify MCP server is configured:**
+5. **Verify the CDP bridge is configured for your local test setup:**
    ```bash
-   cat ~/.claude.json | grep -A5 obsidian-cdp
+   curl -s http://127.0.0.1:9222/json/version
    ```
 
 ---
