@@ -6,6 +6,8 @@
  * Tests that selecting a value in a table dropdown persists correctly.
  */
 
+import { mkdir } from 'node:fs/promises';
+import { join } from 'node:path';
 import { chromium } from 'playwright';
 
 async function runTest() {
@@ -156,11 +158,18 @@ async function runTest() {
 
 	// Take screenshot after interaction
 	console.log('\nTaking final screenshot...');
+	const screenshotPath = join(
+		process.cwd(),
+		'tests',
+		'ui',
+		'pill-styling-after-interaction.png'
+	);
+	await mkdir(join(process.cwd(), 'tests', 'ui'), { recursive: true });
 	await page.screenshot({
-		path: '/Users/edwardhallam/code/spicy-tools/tests/ui/pill-styling-after-interaction.png',
+		path: screenshotPath,
 		fullPage: false,
 	});
-	console.log('Screenshot saved to: tests/ui/pill-styling-after-interaction.png');
+	console.log(`Screenshot saved to: ${screenshotPath}`);
 
 	await browser.close();
 

@@ -6,6 +6,8 @@
  * Requires: Obsidian running with --remote-debugging-port=9222
  */
 
+import { mkdir } from 'node:fs/promises';
+import { join } from 'node:path';
 import { chromium } from 'playwright';
 
 async function runTest() {
@@ -196,13 +198,18 @@ async function runTest() {
 
 	// Take screenshot
 	console.log('\nTaking screenshot...');
+	const screenshotPath = join(
+		process.cwd(),
+		'tests',
+		'ui',
+		'pill-styling-screenshot.png'
+	);
+	await mkdir(join(process.cwd(), 'tests', 'ui'), { recursive: true });
 	await page.screenshot({
-		path: '/Users/edwardhallam/code/spicy-tools/tests/ui/pill-styling-screenshot.png',
+		path: screenshotPath,
 		fullPage: false,
 	});
-	console.log(
-		'Screenshot saved to: tests/ui/pill-styling-screenshot.png'
-	);
+	console.log(`Screenshot saved to: ${screenshotPath}`);
 
 	await browser.close();
 

@@ -8,7 +8,11 @@
  * running on Mac Mini via SSH tunnel at localhost:9222.
  */
 
+import { mkdir } from 'node:fs/promises';
+import { join } from 'node:path';
 import { Page, Browser, chromium } from 'playwright';
+
+const SCREENSHOT_DIR = join(process.cwd(), 'tests', 'ui', 'screenshots');
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CDP Connection
@@ -555,7 +559,8 @@ export async function takeScreenshot(
 	suffix?: string
 ): Promise<string> {
 	const filename = suffix ? `${name}-${suffix}.png` : `${name}.png`;
-	const path = `/Users/edwardhallam/code/spicy-tools/tests/ui/screenshots/${filename}`;
+	await mkdir(SCREENSHOT_DIR, { recursive: true });
+	const path = join(SCREENSHOT_DIR, filename);
 
 	await page.screenshot({ path, fullPage: false });
 	return path;
@@ -574,7 +579,8 @@ export async function takeElementScreenshot(
 		throw new Error(`Element not found: ${selector}`);
 	}
 
-	const path = `/Users/edwardhallam/code/spicy-tools/tests/ui/screenshots/${name}.png`;
+	await mkdir(SCREENSHOT_DIR, { recursive: true });
+	const path = join(SCREENSHOT_DIR, `${name}.png`);
 	await element.screenshot({ path });
 	return path;
 }
