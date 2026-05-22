@@ -13,7 +13,7 @@ importers:
         version: 6.6.0
       '@codemirror/view':
         specifier: ^6.39.11
-        version: 6.42.1
+        version: 6.43.0
       '@playwright/test':
         specifier: ^1.57.0
         version: 1.60.0
@@ -37,7 +37,7 @@ importers:
         version: 30.4.1
       obsidian:
         specifier: latest
-        version: 1.12.3(@codemirror/state@6.6.0)(@codemirror/view@6.42.1)
+        version: 1.12.3(@codemirror/state@6.6.0)(@codemirror/view@6.43.0)
       playwright:
         specifier: ^1.58.0
         version: 1.60.0
@@ -224,8 +224,8 @@ packages:
   '@codemirror/state@6.6.0':
     resolution: {integrity: sha512-4nbvra5R5EtiCzr9BTHiTLc+MLXK2QGiAVYMyi8PkQd3SR+6ixar/Q/01Fa21TBIDOZXgeWV4WppsQolSreAPQ==}
 
-  '@codemirror/view@6.42.1':
-    resolution: {integrity: sha512-ToN3oFc0nsxNUYVF5P0ztLgbC4UPPjPtA9aKYhkOKQaZASpOUo6ISXyQLP66ctVwlDc+j6Jv0uK5IFALkiXztg==}
+  '@codemirror/view@6.43.0':
+    resolution: {integrity: sha512-V7ZCLQO3Jus9hzh2jVCCPW3mO4IBMr43O37PqSUYautJSnnJF41YlgLw21x0fLJTYvJ+Vkm6Gp+qKGH9pltgXA==}
 
   '@csstools/color-helpers@5.1.0':
     resolution: {integrity: sha512-S11EXWJyy0Mz5SYvRmY8nJYTFFd1LCNV+7cXyAgQtOOuzb4EsgfqDufL+9esx72/eLhsRdGZwaldu/h+E4t4BA==}
@@ -2030,7 +2030,7 @@ snapshots:
     dependencies:
       '@marijn/find-cluster-break': 1.0.2
 
-  '@codemirror/view@6.42.1':
+  '@codemirror/view@6.43.0':
     dependencies:
       '@codemirror/state': 6.6.0
       crelt: 1.0.6
@@ -3452,10 +3452,10 @@ snapshots:
 
   nwsapi@2.2.23: {}
 
-  obsidian@1.12.3(@codemirror/state@6.6.0)(@codemirror/view@6.42.1):
+  obsidian@1.12.3(@codemirror/state@6.6.0)(@codemirror/view@6.43.0):
     dependencies:
       '@codemirror/state': 6.6.0
-      '@codemirror/view': 6.42.1
+      '@codemirror/view': 6.43.0
       '@types/codemirror': 5.60.8
       moment: 2.29.4
 
