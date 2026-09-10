@@ -1,6 +1,25 @@
 # Spicy Tools
 
-An Obsidian plugin adding Kanban boards, dropdowns, tagging to an Obsidian vault
+An Obsidian plugin adding Kanban boards, dropdowns, and tagging to an Obsidian vault.
+
+> [!NOTE]
+> **No longer actively maintained.** Spicy Tools remains public as a portfolio of my work building Kanban boards and configurable dropdown interfaces for Obsidian. Updates and support are no longer planned. You're welcome to explore and fork the project under the MIT license.
+
+## Screenshots
+
+### Kanban board
+
+Each card is a Markdown note. Moving it between columns updates its frontmatter status.
+
+![Spicy Tools Kanban board showing Markdown notes in Todo, In Progress, and Done columns](docs/images/kanban-board.png)
+
+### Property dropdowns
+
+Folder-defined options turn note properties into single-select dropdowns and multi-select tags.
+
+![Spicy Tools test-entry note with priority and status dropdowns and an open tags selector showing backend and frontend selected](docs/images/property-dropdowns.png)
+
+These screenshots show the existing Kanban and dropdown example notes running in Obsidian.
 
 ## Features
 
@@ -78,14 +97,11 @@ Create a `_board.md` file in any folder:
 
 ````markdown
 ```yaml
-property: status
+columnProperty: status
 columns:
-  - name: To Do
-    value: todo
-  - name: In Progress
-    value: in-progress
-  - name: Done
-    value: done
+  - Todo
+  - In Progress
+  - Done
 ```
 ````
 
@@ -98,12 +114,10 @@ Embed a board in any note using a code block:
 ````markdown
 ```kanban
 folder: Projects/MyProject
-property: status
+columnProperty: status
 columns:
-  - name: To Do
-    value: todo
-  - name: Done
-    value: done
+  - Todo
+  - Done
 ```
 ````
 
